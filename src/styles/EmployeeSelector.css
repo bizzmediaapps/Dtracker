@@ -1,0 +1,51 @@
+.employee-selector {
+    padding: 2rem;
+    text-align: center;
+}
+
+.employee-selector h2 {
+    margin-bottom: 1.5rem;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.employee-select {
+    width: 100%;
+    max-width: 300px;
+    padding: 0.75rem;
+    font-size: 1rem;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236B7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1.25rem;
+    padding-right: 2.5rem;
+}
+
+.employee-select:hover {
+    border-color: var(--accent-primary);
+}
+
+.employee-select:focus {
+    border-color: var(--accent-primary);
+    outline: none;
+    box-shadow: 0 0 0 3px var(--accent-primary-hover);
+}
+
+/* Style the options */
+.employee-select option {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    padding: 0.75rem;
+}
+
+/* Style the placeholder option */
+.employee-select option[value=""] {
+    color: var(--text-tertiary);
+} 

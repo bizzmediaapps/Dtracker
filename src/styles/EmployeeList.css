@@ -1,0 +1,57 @@
+.employee-list {
+    padding: 2rem;
+    background-color: var(--bg-secondary);
+    border-radius: 12px;
+    box-shadow: var(--shadow-md);
+    max-width: 600px;
+    margin: 2rem auto;
+    border: 1px solid var(--border-color);
+}
+
+.employee-list h2 {
+    margin-bottom: 1.5rem;
+    color: var(--text-primary);
+    text-align: center;
+}
+
+.employee-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+.employee-card {
+    padding: 1.5rem;
+    border-radius: 8px;
+    background-color: var(--bg-primary);
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: 1px solid var(--border-color);
+}
+
+.employee-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.employee-name {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: var(--text-primary);
+}
+
+.employee-status {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-weight: 500;
+    border: 2px solid;
+    margin-bottom: 0.75rem;
+    background-color: var(--bg-secondary);
+}
+
+.last-updated {
+    font-size: 0.875rem;
+    color: var(--text-tertiary);
+} 
