@@ -73,6 +73,10 @@ function App() {
     setEmployees(prevEmployees => [...prevEmployees, { ...newEmployee, id }]);
   };
 
+  const handleDeleteEmployee = (id: string) => {
+    setEmployees(prevEmployees => prevEmployees.filter(emp => emp.id !== id));
+  };
+
   const toggleTheme = () => {
     setIsDarkMode(prev => !prev);
   };
@@ -116,7 +120,10 @@ function App() {
           </div>
         </div>
         {viewMode === 'cards' ? (
-          <EmployeeList employees={employees} />
+          <EmployeeList 
+            employees={employees} 
+            onDeleteEmployee={handleDeleteEmployee} 
+          />
         ) : (
           <TableView employees={employees} />
         )}
