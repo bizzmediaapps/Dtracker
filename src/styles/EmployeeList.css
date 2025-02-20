@@ -2,6 +2,19 @@
     margin-top: 20px;
 }
 
+.employee-list.glass-effect {
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    box-shadow: var(--shadow-md);
+}
+
+[data-theme='dark'] .employee-list.glass-effect {
+    background: rgba(15, 23, 42, 0.7);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
 .employee-list h2 {
     color: var(--text-primary);
     font-size: 1.5rem;
@@ -29,10 +42,20 @@
     transition: all 0.2s ease;
 }
 
+[data-theme='dark'] .employee-card {
+    background: var(--bg-secondary);
+    border-color: var(--border-color);
+}
+
 .employee-card:hover {
     transform: translateY(-2px);
     box-shadow: var(--shadow-md);
     border-color: var(--accent-primary);
+}
+
+[data-theme='dark'] .employee-card:hover {
+    background: var(--bg-tertiary);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 }
 
 .employee-info {
@@ -49,13 +72,18 @@
 
 .status-indicator {
     display: inline-flex;
-    padding: 6px 12px;
+    padding: 8px 16px;
     border-radius: 20px;
     font-size: 0.875rem;
     color: white;
     font-weight: 500;
     align-items: center;
     gap: 6px;
+    box-shadow: var(--shadow-sm);
+}
+
+[data-theme='dark'] .status-indicator {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .delete-button {
@@ -78,14 +106,10 @@
     transform: scale(1.1);
 }
 
-[data-theme='dark'] .delete-button:hover {
-    background-color: rgba(239, 68, 68, 0.2);
+[data-theme='dark'] .delete-button {
+    color: #f87171;
 }
 
-/* Glass effect for the container */
-.employee-list.glass-effect {
-    background: rgba(255, 255, 255, 0.9);
-    backdrop-filter: blur(10px);
-    border-radius: 12px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+[data-theme='dark'] .delete-button:hover {
+    background-color: rgba(239, 68, 68, 0.2);
 } 
