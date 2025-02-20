@@ -139,4 +139,24 @@ main {
     display: flex;
     justify-content: space-between;
     align-items: center;
+}
+
+.loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    font-size: 1.2em;
+    color: #666;
+}
+
+.error {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    color: #dc3545;
+    font-size: 1.2em;
+    padding: 20px;
+    text-align: center;
 } 

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { supabase } from './lib/supabase';
 import StatusUpdater from './components/StatusUpdater';
 import EmployeeList from './components/EmployeeList';
 import EmployeeSelector from './components/EmployeeSelector';
@@ -21,33 +22,33 @@ function App() {
     return savedTheme ? savedTheme === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
   
-  // Sample employee data - in a real app, this would come from a backend
-  const [employees, setEmployees] = useState<Employee[]>([
-    {
-      id: '1',
-      name: 'John Doe',
-      status: 'in-office' as WorkStatus,
-      lastUpdated: new Date(),
-    },
-    {
-      id: '2',
-      name: 'Jane Smith',
-      status: 'wfh' as WorkStatus,
-      lastUpdated: new Date(),
-    },
-    {
-      id: '3',
-      name: 'Mike Johnson',
-      status: 'on-job' as WorkStatus,
-      lastUpdated: new Date(),
-    },
-    {
-      id: '4',
-      name: 'Sarah Wilson',
-      status: 'off' as WorkStatus,
-      lastUpdated: new Date(),
-    },
-  ]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch employees on component mount
+  useEffect(() => {
+    fetchEmployees();
+  }, []);
+
+  const fetchEmployees = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('employees')
+        .select('*')
+        .order('name');
+
+      if (error) throw error;
+
+      setEmployees(data || []);
+    } catch (error) {
+      console.error('Error fetching employees:', error);
+      setError('Failed to fetch employees');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', isDarkMode ? 'dark' : 'light');
@@ -56,30 +57,75 @@ function App() {
 
   const selectedEmployee = employees.find(emp => emp.id === selectedEmployeeId);
 
-  const handleStatusUpdate = (newStatus: WorkStatus) => {
+  const handleStatusUpdate = async (newStatus: WorkStatus) => {
     if (!selectedEmployeeId) return;
 
-    setEmployees(prevEmployees => {
-      return prevEmployees.map(emp => 
+    try {
+      const { error } = await supabase
+        .from('employees')
+        .update({ 
+          status: newStatus,
+          lastUpdated: new Date().toISOString()
+        })
+        .eq('id', selectedEmployeeId);
+
+      if (error) throw error;
+
+      setEmployees(prev => prev.map(emp =>
         emp.id === selectedEmployeeId
           ? { ...emp, status: newStatus, lastUpdated: new Date() }
           : emp
-      );
-    });
+      ));
+    } catch (error) {
+      console.error('Error updating status:', error);
+      // You might want to show an error message to the user
+    }
   };
 
-  const handleAddEmployee = (newEmployee: Omit<Employee, 'id'>) => {
-    const id = (employees.length + 1).toString();
-    setEmployees(prevEmployees => [...prevEmployees, { ...newEmployee, id }]);
+  const handleAddEmployee = async (newEmployee: Omit<Employee, 'id'>) => {
+    try {
+      const { data, error } = await supabase
+        .from('employees')
+        .insert([newEmployee])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setEmployees(prev => [...prev, data]);
+    } catch (error) {
+      console.error('Error adding employee:', error);
+      // You might want to show an error message to the user
+    }
   };
 
-  const handleDeleteEmployee = (id: string) => {
-    setEmployees(prevEmployees => prevEmployees.filter(emp => emp.id !== id));
+  const handleDeleteEmployee = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('employees')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setEmployees(prev => prev.filter(emp => emp.id !== id));
+    } catch (error) {
+      console.error('Error deleting employee:', error);
+      // You might want to show an error message to the user
+    }
   };
 
   const toggleTheme = () => {
     setIsDarkMode(prev => !prev);
   };
+
+  if (loading) {
+    return <div className="loading">Loading...</div>;
+  }
+
+  if (error) {
+    return <div className="error">{error}</div>;
+  }
 
   return (
     <div className="app">
