@@ -26,10 +26,32 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch employees on component mount
   useEffect(() => {
     fetchEmployees();
-  }, []);
+
+    // Set up real-time subscription
+    const subscription = supabase
+      .channel('employees-channel')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',  // Listen to all changes (insert, update, delete)
+          schema: 'public',
+          table: 'employees'
+        },
+        async (payload) => {
+          console.log('Change received!', payload);
+          // Refresh the entire list when any change occurs
+          await fetchEmployees();
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscription on unmount
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);  // Empty dependency array since we want this to run once on mount
 
   const fetchEmployees = async () => {
     try {
@@ -39,7 +61,10 @@ function App() {
         .select('*')
         .order('name');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching:', error);
+        throw error;
+      }
 
       // Convert the date strings to Date objects
       const employeesWithDates = (data || []).map(emp => ({
@@ -75,13 +100,12 @@ function App() {
         })
         .eq('id', selectedEmployeeId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Update error:', error);
+        throw error;
+      }
 
-      setEmployees(prev => prev.map(emp =>
-        emp.id === selectedEmployeeId
-          ? { ...emp, status: newStatus, lastUpdated: new Date() }
-          : emp
-      ));
+      // Let the subscription handle the update
     } catch (error) {
       console.error('Error updating status:', error);
       // You might want to show an error message to the user
@@ -90,22 +114,19 @@ function App() {
 
   const handleAddEmployee = async (newEmployee: Omit<Employee, 'id'>) => {
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('employees')
         .insert([{
           ...newEmployee,
           lastUpdated: newEmployee.lastUpdated.toISOString()
-        }])
-        .select()
-        .single();
+        }]);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Insert error:', error);
+        throw error;
+      }
 
-      // Convert the date string back to a Date object
-      setEmployees(prev => [...prev, {
-        ...data,
-        lastUpdated: new Date(data.lastUpdated)
-      }]);
+      // Let the subscription handle the insert
     } catch (error) {
       console.error('Error adding employee:', error);
       // You might want to show an error message to the user
@@ -119,9 +140,16 @@ function App() {
         .delete()
         .eq('id', id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Delete error:', error);
+        throw error;
+      }
 
-      setEmployees(prev => prev.filter(emp => emp.id !== id));
+      // Let the subscription handle the delete
+      // Also clear the selected employee if it was deleted
+      if (selectedEmployeeId === id) {
+        setSelectedEmployeeId(null);
+      }
     } catch (error) {
       console.error('Error deleting employee:', error);
       // You might want to show an error message to the user
