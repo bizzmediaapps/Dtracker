@@ -114,18 +114,24 @@ function App() {
   const handleAddEmployee = async (newEmployee: Omit<Employee, 'id'>) => {
     try {
       console.log('Adding employee:', newEmployee); // Debug log
-      const { error } = await supabase
+      
+      const { data, error } = await supabase
         .from('employees')
-        .insert([{
+        .insert({
           name: newEmployee.name,
           status: newEmployee.status,
           lastUpdated: new Date().toISOString()
-        }]);
+        })
+        .select()
+        .single();
 
       if (error) {
         console.error('Insert error:', error);
-        throw error;
+        alert(`Failed to add employee: ${error.message}`);
+        return;
       }
+
+      console.log('Successfully added employee:', data);
     } catch (error) {
       console.error('Error adding employee:', error);
       alert('Failed to add employee. Please try again.');

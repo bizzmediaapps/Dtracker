@@ -12,14 +12,20 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({ onAddEmployee }) => {
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (name.trim()) {
-            const newEmployee = {
-                name: name.trim(),
-                status: 'in-office' as WorkStatus,
-                lastUpdated: new Date()
-            };
-            onAddEmployee(newEmployee);
-            setName('');
-            setIsFormVisible(false);
+            try {
+                const newEmployee = {
+                    name: name.trim(),
+                    status: 'in-office' as WorkStatus,
+                    lastUpdated: new Date()
+                };
+                console.log('Submitting new employee:', newEmployee); // Debug log
+                onAddEmployee(newEmployee);
+                setName('');
+                setIsFormVisible(false);
+            } catch (error) {
+                console.error('Error in AddEmployee:', error);
+                alert('Failed to create employee');
+            }
         }
     };
 
