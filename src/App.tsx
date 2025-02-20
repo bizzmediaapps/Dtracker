@@ -125,7 +125,10 @@ function App() {
             onDeleteEmployee={handleDeleteEmployee} 
           />
         ) : (
-          <TableView employees={employees} />
+          <TableView 
+            employees={employees} 
+            onDeleteEmployee={handleDeleteEmployee} 
+          />
         )}
       </main>
     </div>
