@@ -8,16 +8,16 @@ interface AddEmployeeProps {
 const AddEmployee: React.FC<AddEmployeeProps> = ({ onAddEmployee }) => {
     const [isFormVisible, setIsFormVisible] = useState<boolean>(false);
     const [name, setName] = useState<string>('');
-    const [status] = useState<WorkStatus>('in-office');
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (name.trim()) {
-            onAddEmployee({
+            const newEmployee = {
                 name: name.trim(),
-                status: status,
+                status: 'in-office' as WorkStatus,
                 lastUpdated: new Date()
-            });
+            };
+            onAddEmployee(newEmployee);
             setName('');
             setIsFormVisible(false);
         }
@@ -38,7 +38,7 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({ onAddEmployee }) => {
                     <input
                         type="text"
                         value={name}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
+                        onChange={(e) => setName(e.target.value)}
                         placeholder="Enter employee name"
                         className="employee-input"
                         autoFocus

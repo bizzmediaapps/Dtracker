@@ -92,6 +92,7 @@ function App() {
     if (!selectedEmployeeId) return;
 
     try {
+      console.log('Updating status:', selectedEmployeeId, newStatus); // Debug log
       const { error } = await supabase
         .from('employees')
         .update({ 
@@ -104,32 +105,30 @@ function App() {
         console.error('Update error:', error);
         throw error;
       }
-
-      // Let the subscription handle the update
     } catch (error) {
       console.error('Error updating status:', error);
-      // You might want to show an error message to the user
+      alert('Failed to update status. Please try again.');
     }
   };
 
   const handleAddEmployee = async (newEmployee: Omit<Employee, 'id'>) => {
     try {
+      console.log('Adding employee:', newEmployee); // Debug log
       const { error } = await supabase
         .from('employees')
         .insert([{
-          ...newEmployee,
-          lastUpdated: newEmployee.lastUpdated.toISOString()
+          name: newEmployee.name,
+          status: newEmployee.status,
+          lastUpdated: new Date().toISOString()
         }]);
 
       if (error) {
         console.error('Insert error:', error);
         throw error;
       }
-
-      // Let the subscription handle the insert
     } catch (error) {
       console.error('Error adding employee:', error);
-      // You might want to show an error message to the user
+      alert('Failed to add employee. Please try again.');
     }
   };
 
