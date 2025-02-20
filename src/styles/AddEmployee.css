@@ -4,47 +4,41 @@
 }
 
 .add-button {
-    background-color: #2196F3;
-    color: white;
-    padding: 0.75rem 1.5rem;
-    border-radius: 8px;
-    font-size: 1rem;
-    font-weight: 600;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    padding: 8px 16px;
+    border-radius: 4px;
     cursor: pointer;
-    border: none;
-    transition: all 0.2s ease;
-    box-shadow: 0 2px 4px rgba(33, 150, 243, 0.2);
+    transition: all 0.2s;
+    border: 1px solid var(--border-color);
 }
 
 .add-button:hover {
-    background-color: #1976D2;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 6px rgba(33, 150, 243, 0.3);
+    background: var(--bg-secondary);
+}
+
+[data-theme='dark'] .add-button {
+    border-color: var(--border-color);
 }
 
 .add-employee-form {
-    max-width: 400px;
-    margin: 0 auto;
-    padding: 1.5rem;
-    background-color: white;
-    border-radius: 12px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    background: var(--bg-primary);
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
 }
 
 .employee-input {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    padding: 8px 12px;
+    border-radius: 4px;
     width: 100%;
-    padding: 0.75rem;
-    font-size: 1rem;
-    border: 2px solid #e0e0e0;
-    border-radius: 8px;
-    margin-bottom: 1rem;
-    transition: border-color 0.2s ease;
 }
 
-.employee-input:focus {
-    border-color: #2196F3;
-    outline: none;
-    box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
+.employee-input::placeholder {
+    color: var(--text-secondary);
 }
 
 .button-group {

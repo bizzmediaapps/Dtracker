@@ -1,6 +1,8 @@
 .employee-selector {
     padding: 2rem;
     text-align: center;
+    width: 100%;
+    max-width: 300px;
 }
 
 .employee-selector h2 {
@@ -48,4 +50,18 @@
 /* Style the placeholder option */
 .employee-select option[value=""] {
     color: var(--text-tertiary);
+}
+
+.employee-selector select {
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: 4px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+[data-theme='dark'] .employee-selector select option {
+    background: var(--bg-primary);
+    color: var(--text-primary);
 } 

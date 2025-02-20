@@ -1,38 +1,32 @@
 .status-updater {
-    padding: 2rem;
-    background-color: white;
-    border-radius: 12px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    max-width: 600px;
-    margin: 2rem auto;
-}
-
-.status-updater h2 {
-    margin-bottom: 1.5rem;
-    color: #333;
-    text-align: center;
+    padding: 20px;
+    margin: 20px 0;
 }
 
 .status-buttons {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 16px;
 }
 
 .status-button {
-    padding: 1rem;
+    padding: 10px 20px;
     border-radius: 8px;
-    font-size: 1rem;
-    font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s;
+    font-weight: 500;
+}
+
+[data-theme='dark'] .status-button {
+    background: var(--bg-tertiary);
 }
 
 .status-button:hover {
     transform: translateY(-2px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.status-button.active {
-    transform: scale(1.05);
+.status-updater h2 {
+    color: var(--text-primary);
+    margin: 0;
 } 

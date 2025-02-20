@@ -6,23 +6,26 @@
 .table-view table {
     width: 100%;
     border-collapse: collapse;
-    background: white;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
 }
 
 .table-view th,
 .table-view td {
     padding: 12px;
     text-align: left;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .table-view th {
-    background-color: #f5f5f5;
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
     font-weight: 600;
 }
 
 .table-view tr:hover {
-    background-color: #f8f9fa;
+    background-color: var(--bg-secondary);
 }
 
 .table-view .delete-button:hover {
