@@ -41,7 +41,13 @@ function App() {
 
       if (error) throw error;
 
-      setEmployees(data || []);
+      // Convert the date strings to Date objects
+      const employeesWithDates = (data || []).map(emp => ({
+        ...emp,
+        lastUpdated: new Date(emp.lastUpdated)
+      }));
+
+      setEmployees(employeesWithDates);
     } catch (error) {
       console.error('Error fetching employees:', error);
       setError('Failed to fetch employees');
@@ -86,13 +92,20 @@ function App() {
     try {
       const { data, error } = await supabase
         .from('employees')
-        .insert([newEmployee])
+        .insert([{
+          ...newEmployee,
+          lastUpdated: newEmployee.lastUpdated.toISOString()
+        }])
         .select()
         .single();
 
       if (error) throw error;
 
-      setEmployees(prev => [...prev, data]);
+      // Convert the date string back to a Date object
+      setEmployees(prev => [...prev, {
+        ...data,
+        lastUpdated: new Date(data.lastUpdated)
+      }]);
     } catch (error) {
       console.error('Error adding employee:', error);
       // You might want to show an error message to the user
