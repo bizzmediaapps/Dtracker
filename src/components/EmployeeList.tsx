@@ -1,11 +1,29 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Employee, WorkStatus } from '../types';
 
 interface EmployeeListProps {
     employees: Employee[];
+    onDeleteEmployee: (id: string) => void;
 }
 
-const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
+const EmployeeList: React.FC<EmployeeListProps> = ({ employees, onDeleteEmployee }) => {
+    const [employeeToDelete, setEmployeeToDelete] = useState<string | null>(null);
+
+    const handleDelete = (id: string) => {
+        setEmployeeToDelete(id);
+    };
+
+    const confirmDelete = () => {
+        if (employeeToDelete) {
+            onDeleteEmployee(employeeToDelete);
+            setEmployeeToDelete(null);
+        }
+    };
+
+    const cancelDelete = () => {
+        setEmployeeToDelete(null);
+    };
+
     const getStatusColor = (status: WorkStatus): string => {
         const colors = {
             'in-office': '#4CAF50',
@@ -32,22 +50,48 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
             <div className="employee-grid">
                 {employees.map((employee) => (
                     <div key={employee.id} className="employee-card">
-                        <div className="employee-name">{employee.name}</div>
-                        <div 
-                            className="employee-status"
-                            style={{ 
-                                color: getStatusColor(employee.status),
-                                borderColor: getStatusColor(employee.status)
-                            }}
+                        <div className="employee-info">
+                            <span className="employee-name">{employee.name}</span>
+                            <span 
+                                className="status-indicator"
+                                style={{ backgroundColor: getStatusColor(employee.status) }}
+                            >
+                                {getStatusLabel(employee.status)}
+                            </span>
+                        </div>
+                        <button
+                            className="delete-button"
+                            onClick={() => handleDelete(employee.id)}
                         >
-                            {getStatusLabel(employee.status)}
-                        </div>
-                        <div className="last-updated">
-                            Last updated: {new Date(employee.lastUpdated).toLocaleString()}
-                        </div>
+                            ×
+                        </button>
                     </div>
                 ))}
             </div>
+
+            {/* Confirmation Dialog */}
+            {employeeToDelete && (
+                <div className="confirmation-dialog-overlay">
+                    <div className="confirmation-dialog">
+                        <h3>Confirm Delete</h3>
+                        <p>Are you sure you want to remove this employee?</p>
+                        <div className="dialog-buttons">
+                            <button 
+                                className="confirm-button"
+                                onClick={confirmDelete}
+                            >
+                                Yes, Remove
+                            </button>
+                            <button 
+                                className="cancel-button"
+                                onClick={cancelDelete}
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
