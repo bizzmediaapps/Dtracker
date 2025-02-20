@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Employee } from '../types';
+import { Employee, WorkStatus } from '../types';
 
 interface AddEmployeeProps {
     onAddEmployee: (employee: Omit<Employee, 'id'>) => void;
@@ -8,13 +8,14 @@ interface AddEmployeeProps {
 const AddEmployee: React.FC<AddEmployeeProps> = ({ onAddEmployee }) => {
     const [isFormVisible, setIsFormVisible] = useState<boolean>(false);
     const [name, setName] = useState<string>('');
+    const [status] = useState<WorkStatus>('in-office');
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (name.trim()) {
             onAddEmployee({
                 name: name.trim(),
-                status: 'in-office' as const,
+                status: status,
                 lastUpdated: new Date()
             });
             setName('');

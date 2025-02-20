@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { WorkStatus } from '../types';
 
 interface StatusUpdaterProps {
@@ -7,6 +7,8 @@ interface StatusUpdaterProps {
 }
 
 const StatusUpdater: React.FC<StatusUpdaterProps> = ({ currentStatus, onStatusUpdate }) => {
+    const [hoveredStatus, setHoveredStatus] = useState<WorkStatus | null>(null);
+
     const statusOptions: { value: WorkStatus; label: string; color: string }[] = [
         { value: 'in-office', label: 'In Office', color: '#4CAF50' },
         { value: 'on-job', label: 'Out on Job', color: '#2196F3' },
@@ -22,11 +24,14 @@ const StatusUpdater: React.FC<StatusUpdaterProps> = ({ currentStatus, onStatusUp
                     <button
                         key={option.value}
                         onClick={() => onStatusUpdate(option.value)}
+                        onMouseEnter={() => setHoveredStatus(option.value)}
+                        onMouseLeave={() => setHoveredStatus(null)}
                         className={`status-button ${currentStatus === option.value ? 'active' : ''}`}
                         style={{
                             backgroundColor: currentStatus === option.value ? option.color : 'transparent',
                             color: currentStatus === option.value ? 'white' : option.color,
                             border: `2px solid ${option.color}`,
+                            transform: hoveredStatus === option.value ? 'scale(1.05)' : 'scale(1)',
                         }}
                     >
                         {option.label}
