@@ -1,20 +1,20 @@
 import React, { useState } from 'react';
-import { Employee, WorkStatus } from '../types';
+import { Employee } from '../types';
 
 interface AddEmployeeProps {
     onAddEmployee: (employee: Omit<Employee, 'id'>) => void;
 }
 
 const AddEmployee: React.FC<AddEmployeeProps> = ({ onAddEmployee }) => {
-    const [isFormVisible, setIsFormVisible] = useState(false);
-    const [name, setName] = useState('');
+    const [isFormVisible, setIsFormVisible] = useState<boolean>(false);
+    const [name, setName] = useState<string>('');
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (name.trim()) {
             onAddEmployee({
                 name: name.trim(),
-                status: 'in-office',
+                status: 'in-office' as const,
                 lastUpdated: new Date()
             });
             setName('');
@@ -26,6 +26,7 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({ onAddEmployee }) => {
         <div className="add-employee">
             {!isFormVisible ? (
                 <button 
+                    type="button"
                     className="add-button"
                     onClick={() => setIsFormVisible(true)}
                 >
@@ -36,7 +37,7 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({ onAddEmployee }) => {
                     <input
                         type="text"
                         value={name}
-                        onChange={(e) => setName(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
                         placeholder="Enter employee name"
                         className="employee-input"
                         autoFocus
