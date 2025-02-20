@@ -45,7 +45,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees, onDeleteEmployee
     };
 
     return (
-        <div className="employee-list">
+        <div className="employee-list glass-effect">
             <h2>Employee Status Overview</h2>
             <div className="employee-grid">
                 {employees.map((employee) => (
@@ -62,6 +62,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees, onDeleteEmployee
                         <button
                             className="delete-button"
                             onClick={() => handleDelete(employee.id)}
+                            title="Remove employee"
                         >
                             ×
                         </button>
