@@ -2,78 +2,84 @@
     margin-top: 20px;
 }
 
+.employee-list h2 {
+    color: var(--text-primary);
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 24px;
+    padding: 0 24px;
+}
+
 .employee-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 20px;
-    padding: 20px;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 24px;
+    padding: 24px;
 }
 
 .employee-card {
     background: var(--bg-primary);
     padding: 20px;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 16px;
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    transition: transform 0.2s, box-shadow 0.2s;
-    border: 1px solid var(--border-color);
-    color: var(--text-primary);
+    transition: all 0.2s ease;
 }
 
 .employee-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: var(--shadow-md);
+    border-color: var(--accent-primary);
 }
 
 .employee-info {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 12px;
 }
 
 .employee-name {
-    font-size: 1.1em;
-    font-weight: 500;
+    font-size: 1.1rem;
+    font-weight: 600;
     color: var(--text-primary);
 }
 
 .status-indicator {
-    display: inline-block;
+    display: inline-flex;
     padding: 6px 12px;
     border-radius: 20px;
-    font-size: 0.9em;
+    font-size: 0.875rem;
     color: white;
     font-weight: 500;
+    align-items: center;
+    gap: 6px;
 }
 
 .delete-button {
-    background: transparent;
-    border: none;
-    color: #dc3545;
-    font-size: 1.5em;
-    cursor: pointer;
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: #ef4444;
+    font-size: 1.25rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s;
-    padding: 0;
-    margin-left: 12px;
 }
 
 .delete-button:hover {
-    background-color: rgba(220, 53, 69, 0.2);
+    background-color: #fee2e2;
     transform: scale(1.1);
 }
 
-.employee-list h2 {
-    color: var(--text-primary);
-    margin-bottom: 20px;
-    padding: 0 20px;
+[data-theme='dark'] .delete-button:hover {
+    background-color: rgba(239, 68, 68, 0.2);
 }
 
 /* Glass effect for the container */
@@ -82,8 +88,4 @@
     backdrop-filter: blur(10px);
     border-radius: 12px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-[data-theme='dark'] .delete-button:hover {
-    background-color: rgba(220, 53, 69, 0.2);
 } 

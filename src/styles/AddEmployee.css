@@ -4,37 +4,51 @@
 }
 
 .add-button {
-    background: var(--bg-primary);
-    color: var(--text-primary);
-    padding: 8px 16px;
-    border-radius: 4px;
+    background: var(--accent-primary);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 12px;
+    font-weight: 600;
+    border: none;
     cursor: pointer;
-    transition: all 0.2s;
-    border: 1px solid var(--border-color);
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: var(--shadow-sm);
 }
 
 .add-button:hover {
-    background: var(--bg-secondary);
-}
-
-[data-theme='dark'] .add-button {
-    border-color: var(--border-color);
+    background: var(--accent-hover);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
 }
 
 .add-employee-form {
     background: var(--bg-primary);
-    padding: 20px;
-    border-radius: 8px;
+    padding: 24px;
+    border-radius: 16px;
     border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-md);
+    max-width: 400px;
+    margin: 0 auto;
 }
 
 .employee-input {
+    width: 100%;
+    padding: 12px;
+    border-radius: 8px;
+    border: 2px solid var(--border-color);
     background: var(--bg-secondary);
     color: var(--text-primary);
-    border: 1px solid var(--border-color);
-    padding: 8px 12px;
-    border-radius: 4px;
-    width: 100%;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+}
+
+.employee-input:focus {
+    border-color: var(--accent-primary);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 .employee-input::placeholder {
@@ -43,27 +57,24 @@
 
 .button-group {
     display: flex;
-    gap: 1rem;
-    justify-content: center;
+    gap: 12px;
+    margin-top: 20px;
 }
 
-.submit-button, .cancel-button {
-    padding: 0.75rem 1.5rem;
+.submit-button {
+    background: var(--accent-primary);
+    color: white;
+    padding: 10px 24px;
     border-radius: 8px;
-    font-size: 1rem;
     font-weight: 600;
+    border: none;
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
-.submit-button {
-    background-color: #4CAF50;
-    color: white;
-    border: none;
-}
-
 .submit-button:hover:not(:disabled) {
-    background-color: #388E3C;
+    background: var(--accent-hover);
+    transform: translateY(-1px);
 }
 
 .submit-button:disabled {
@@ -72,11 +83,17 @@
 }
 
 .cancel-button {
-    background-color: #f5f5f5;
-    color: #666;
-    border: 1px solid #ddd;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: all 0.2s ease;
 }
 
 .cancel-button:hover {
-    background-color: #e0e0e0;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
 } 
