@@ -1,0 +1,349 @@
+.activities-list {
+  margin: 24px 0;
+  padding: 24px;
+}
+
+.activities-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.activities-header h2 {
+  color: var(--text-primary);
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.add-activity-button {
+  background: var(--accent-primary);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.add-activity-button:hover {
+  background: var(--accent-hover);
+  transform: translateY(-2px);
+}
+
+.activity-add-form {
+  background: var(--bg-primary);
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+}
+
+.activities-items {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.activity-item {
+  background: var(--bg-primary);
+  border-radius: 12px;
+  border-left: 4px solid var(--border-color);
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s ease;
+}
+
+.activity-item:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.activity-item.status-active {
+  border-left-color: var(--accent-primary);
+}
+
+.activity-item.status-completed {
+  border-left-color: var(--status-in-office);
+  opacity: 0.8;
+}
+
+.activity-item.status-deferred {
+  border-left-color: var(--status-off);
+  opacity: 0.8;
+}
+
+.activity-content {
+  display: flex;
+  gap: 12px;
+  flex: 1;
+}
+
+.activity-status-icon {
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+}
+
+.activity-details {
+  flex: 1;
+}
+
+.activity-description {
+  margin: 0 0 8px 0;
+  color: var(--text-primary);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.status-completed .activity-description {
+  text-decoration: line-through;
+  color: var(--text-secondary);
+}
+
+.activity-meta {
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+}
+
+.activity-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.activity-actions button {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+}
+
+.activity-actions button:hover {
+  transform: scale(1.1);
+}
+
+.complete-button:hover {
+  background-color: var(--status-in-office);
+  color: white;
+}
+
+.reactivate-button:hover {
+  background-color: var(--accent-primary);
+  color: white;
+}
+
+.defer-button:hover {
+  background-color: var(--status-off);
+  color: white;
+}
+
+.loading-activities, .no-activities {
+  padding: 20px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+[data-theme='dark'] .activity-add-form,
+[data-theme='dark'] .activity-item {
+  background: var(--bg-secondary);
+}
+
+.activities-tabs {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 12px;
+}
+
+.tab-button {
+  padding: 8px 16px;
+  border-radius: 8px 8px 0 0;
+  border: none;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tab-button.active {
+  background: var(--accent-primary);
+  color: white;
+}
+
+.tab-button:hover:not(.active) {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.activities-filters {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.filter-button {
+  padding: 6px 12px;
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filter-button.active {
+  background: var(--accent-primary);
+  color: white;
+  border-color: var(--accent-primary);
+}
+
+.filter-button:hover:not(.active) {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.activities-table-container {
+  overflow-x: auto;
+  margin-top: 16px;
+}
+
+.activities-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+.activities-table th,
+.activities-table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.activities-table th {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.activities-table tr {
+  transition: all 0.2s ease;
+}
+
+.activities-table tr:hover {
+  background-color: var(--bg-secondary);
+}
+
+.table-row.status-active {
+  border-left: 4px solid var(--accent-primary);
+}
+
+.table-row.status-completed {
+  border-left: 4px solid var(--status-in-office);
+  color: var(--text-secondary);
+}
+
+.table-row.status-completed .description-cell {
+  text-decoration: line-through;
+  color: var(--text-secondary);
+}
+
+.table-row.status-deferred {
+  border-left: 4px solid var(--status-off);
+  color: var(--text-tertiary);
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--bg-secondary);
+  font-size: 0.9rem;
+}
+
+.actions-cell {
+  white-space: nowrap;
+}
+
+.table-action-button {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+  margin-right: 4px;
+}
+
+.table-action-button:hover {
+  transform: scale(1.1);
+}
+
+.table-action-button.complete-button:hover {
+  background-color: var(--status-in-office);
+  color: white;
+}
+
+.table-action-button.reactivate-button:hover {
+  background-color: var(--accent-primary);
+  color: white;
+}
+
+.table-action-button.defer-button:hover {
+  background-color: var(--status-off);
+  color: white;
+}
+
+[data-theme='dark'] .activities-table th {
+  background-color: var(--bg-tertiary);
+}
+
+[data-theme='dark'] .activities-table tr:hover {
+  background-color: var(--bg-tertiary);
+}
+
+[data-theme='dark'] .status-badge {
+  background-color: var(--bg-tertiary);
+}
+
+@media (max-width: 768px) {
+  .activities-table {
+    min-width: 650px;
+  }
+  
+  .description-cell {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+} 

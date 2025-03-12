@@ -1,0 +1,131 @@
+.tasks-view {
+  margin-top: 20px;
+  padding: 24px;
+}
+
+.tasks-view h2 {
+  color: var(--text-primary);
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 24px;
+}
+
+.tasks-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 24px;
+}
+
+.employee-tasks-card {
+  background: var(--bg-primary);
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s ease;
+}
+
+.employee-tasks-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-md);
+}
+
+.employee-tasks-header {
+  padding: 16px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+}
+
+.employee-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.employee-name {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.status-pill {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  color: white;
+  font-weight: 500;
+}
+
+.employee-tasks-list {
+  padding: 16px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.no-tasks, .no-employees, .loading-tasks {
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 20px;
+  font-style: italic;
+}
+
+.tasks-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.task-item {
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  background: var(--bg-secondary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.2s ease;
+}
+
+.task-item:hover {
+  background: var(--bg-tertiary);
+}
+
+.task-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.task-icon {
+  font-size: 1rem;
+}
+
+.task-description {
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  flex: 1;
+}
+
+.task-date {
+  color: var(--text-tertiary);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+[data-theme='dark'] .employee-tasks-card {
+  background: var(--bg-secondary);
+}
+
+[data-theme='dark'] .employee-tasks-header {
+  background: var(--bg-tertiary);
+}
+
+[data-theme='dark'] .task-item {
+  background: var(--bg-tertiary);
+}
+
+[data-theme='dark'] .task-item:hover {
+  background: var(--bg-primary);
+} 

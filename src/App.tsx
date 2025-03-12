@@ -13,10 +13,16 @@ import './styles/EmployeeSelector.css';
 import './styles/AddEmployee.css';
 import './styles/TableView.css';
 import './styles/theme.css';
+import ActivityInput from './components/ActivityInput';
+import './styles/ActivityInput.css';
+import ActivitiesList from './components/ActivitiesList';
+import './styles/ActivitiesList.css';
+import TasksView from './components/TasksView';
+import './styles/TasksView.css';
 
 function App() {
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
+  const [viewMode, setViewMode] = useState<'cards' | 'table' | 'tasks'>('cards');
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const savedTheme = localStorage.getItem('theme');
     return savedTheme ? savedTheme === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -161,6 +167,29 @@ function App() {
     }
   };
 
+  const handleActivityUpdate = async (newActivity: string) => {
+    if (!selectedEmployeeId) return;
+
+    try {
+      console.log('Updating activity:', selectedEmployeeId, newActivity);
+      const { error } = await supabase
+        .from('employees')
+        .update({ 
+          activity: newActivity,
+          lastUpdated: new Date().toISOString()
+        })
+        .eq('id', selectedEmployeeId);
+
+      if (error) {
+        console.error('Update error:', error);
+        throw error;
+      }
+    } catch (error) {
+      console.error('Error updating activity:', error);
+      alert('Failed to update activity. Please try again.');
+    }
+  };
+
   const toggleTheme = () => {
     setIsDarkMode(prev => !prev);
   };
@@ -189,10 +218,13 @@ function App() {
           <AddEmployee onAddEmployee={handleAddEmployee} />
         </div>
         {selectedEmployee && (
-          <StatusUpdater 
-            currentStatus={selectedEmployee.status}
-            onStatusUpdate={handleStatusUpdate}
-          />
+          <>
+            <StatusUpdater 
+              currentStatus={selectedEmployee.status}
+              onStatusUpdate={handleStatusUpdate}
+            />
+            <ActivitiesList employeeId={selectedEmployee.id} />
+          </>
         )}
         <div className="view-toggle-section glass-effect">
           <h2>View Options</h2>
@@ -209,6 +241,12 @@ function App() {
             >
               Table View
             </button>
+            <button 
+              className={`toggle-button ${viewMode === 'tasks' ? 'active' : ''}`}
+              onClick={() => setViewMode('tasks')}
+            >
+              Tasks View
+            </button>
           </div>
         </div>
         {viewMode === 'cards' ? (
@@ -216,10 +254,14 @@ function App() {
             employees={employees} 
             onDeleteEmployee={handleDeleteEmployee} 
           />
-        ) : (
+        ) : viewMode === 'table' ? (
           <TableView 
             employees={employees} 
             onDeleteEmployee={handleDeleteEmployee} 
+          />
+        ) : (
+          <TasksView 
+            employees={employees} 
           />
         )}
       </main>

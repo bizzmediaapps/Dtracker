@@ -16,7 +16,8 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({ onAddEmployee }) => {
                 const newEmployee = {
                     name: name.trim(),
                     status: 'in-office' as WorkStatus,
-                    lastUpdated: new Date()
+                    lastUpdated: new Date(),
+                    activity: '' // Initialize with empty activity
                 };
                 console.log('Submitting new employee:', newEmployee); // Debug log
                 onAddEmployee(newEmployee);

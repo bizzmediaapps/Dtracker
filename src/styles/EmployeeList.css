@@ -112,4 +112,26 @@
 
 [data-theme='dark'] .delete-button:hover {
     background-color: rgba(239, 68, 68, 0.2);
+}
+
+.activity-preview {
+    margin-top: 8px;
+    background-color: var(--bg-secondary);
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+    max-height: 80px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+}
+
+.activity-preview p {
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
 } 

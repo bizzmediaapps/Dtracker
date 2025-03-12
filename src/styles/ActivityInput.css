@@ -1,0 +1,83 @@
+.activity-input {
+    margin: 24px 0;
+    padding: 24px;
+}
+
+.activity-input h2 {
+    color: var(--text-primary);
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+}
+
+.activity-display {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--bg-primary);
+    padding: 16px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+}
+
+.activity-text {
+    color: var(--text-primary);
+    font-size: 1rem;
+    line-height: 1.5;
+    margin: 0;
+    padding-right: 16px;
+}
+
+.edit-activity-button {
+    background: var(--accent-primary);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.edit-activity-button:hover {
+    background: var(--accent-hover);
+    transform: translateY(-2px);
+}
+
+.activity-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.activity-textarea {
+    width: 100%;
+    padding: 12px;
+    border-radius: 8px;
+    border: 2px solid var(--border-color);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 1rem;
+    resize: vertical;
+    min-height: 80px;
+    transition: all 0.2s ease;
+}
+
+.activity-textarea:focus {
+    border-color: var(--accent-primary);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.activity-textarea::placeholder {
+    color: var(--text-secondary);
+}
+
+[data-theme='dark'] .activity-display {
+    background-color: var(--bg-secondary);
+}
+
+[data-theme='dark'] .activity-textarea {
+    background-color: var(--bg-secondary);
+} 

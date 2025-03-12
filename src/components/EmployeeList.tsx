@@ -58,6 +58,11 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees, onDeleteEmployee
                             >
                                 {getStatusLabel(employee.status)}
                             </span>
+                            {employee.activity && (
+                                <div className="activity-preview">
+                                    <p>{employee.activity}</p>
+                                </div>
+                            )}
                         </div>
                         <button
                             className="delete-button"

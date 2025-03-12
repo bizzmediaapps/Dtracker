@@ -34,6 +34,7 @@ const TableView: React.FC<TableViewProps> = ({ employees, onDeleteEmployee }) =>
                     <tr>
                         <th>Name</th>
                         <th>Status</th>
+                        <th>Activity</th>
                         <th>Last Updated</th>
                         <th>Actions</th>
                     </tr>
@@ -55,6 +56,9 @@ const TableView: React.FC<TableViewProps> = ({ employees, onDeleteEmployee }) =>
                                 >
                                     {getStatusLabel(employee.status)}
                                 </span>
+                            </td>
+                            <td className="activity-cell">
+                                {employee.activity || <em>No activity set</em>}
                             </td>
                             <td>{new Date(employee.lastUpdated).toLocaleString()}</td>
                             <td>
