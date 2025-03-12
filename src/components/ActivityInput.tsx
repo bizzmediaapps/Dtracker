@@ -3,13 +3,14 @@ import React, { useState } from 'react';
 interface ActivityInputProps {
     currentActivity: string;
     onActivityUpdate: (newActivity: string) => void;
-    employeeId: string;
+    // We'll keep employeeId in the interface for future use, but mark it as optional
+    employeeId?: string;
 }
 
 const ActivityInput: React.FC<ActivityInputProps> = ({ 
     currentActivity, 
     onActivityUpdate,
-    employeeId 
+    // employeeId is not used, so we'll remove it from the destructuring
 }) => {
     const [activity, setActivity] = useState(currentActivity);
     const [isEditing, setIsEditing] = useState(false);

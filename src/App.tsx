@@ -13,7 +13,6 @@ import './styles/EmployeeSelector.css';
 import './styles/AddEmployee.css';
 import './styles/TableView.css';
 import './styles/theme.css';
-import ActivityInput from './components/ActivityInput';
 import './styles/ActivityInput.css';
 import ActivitiesList from './components/ActivitiesList';
 import './styles/ActivitiesList.css';
@@ -164,29 +163,6 @@ function App() {
     } catch (error) {
       console.error('Error deleting employee:', error);
       // You might want to show an error message to the user
-    }
-  };
-
-  const handleActivityUpdate = async (newActivity: string) => {
-    if (!selectedEmployeeId) return;
-
-    try {
-      console.log('Updating activity:', selectedEmployeeId, newActivity);
-      const { error } = await supabase
-        .from('employees')
-        .update({ 
-          activity: newActivity,
-          lastUpdated: new Date().toISOString()
-        })
-        .eq('id', selectedEmployeeId);
-
-      if (error) {
-        console.error('Update error:', error);
-        throw error;
-      }
-    } catch (error) {
-      console.error('Error updating activity:', error);
-      alert('Failed to update activity. Please try again.');
     }
   };
 

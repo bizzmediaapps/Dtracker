@@ -56,12 +56,6 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
     }
   };
 
-  // Helper function to get employee name
-  const getEmployeeName = (id: string): string => {
-    const employee = employees.find(e => e.id === id);
-    return employee ? employee.name : 'Unknown Employee';
-  };
-
   // Helper function to get the status indicator color
   const getStatusColor = (status: string): string => {
     const colors: {[key: string]: string} = {
