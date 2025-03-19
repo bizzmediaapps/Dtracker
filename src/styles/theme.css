@@ -7,18 +7,26 @@
     --text-primary: #1e293b;
     --text-secondary: #64748b;
     --text-tertiary: #94a3b8;
+    --text-on-accent: #ffffff;
     
     --border-color: #e2e8f0;
     --shadow-color: rgba(0, 0, 0, 0.1);
     
     --accent-primary: #3b82f6;
     --accent-hover: #2563eb;
+    --accent-primary-soft: #dbeafe;
+    --accent-primary-dark: #1d4ed8;
     
     /* Status colors */
     --status-in-office: #22c55e;
     --status-on-job: #3b82f6;
     --status-wfh: #8b5cf6;
     --status-off: #64748b;
+
+    /* Calendar colors */
+    --color-holiday: #f97316;
+    --color-event: #8b5cf6;
+    --color-reminder: #eab308;
 
     /* Transitions */
     --transition-fast: 0.2s ease;
@@ -42,9 +50,18 @@
     --text-primary: #f8fafc;
     --text-secondary: #cbd5e1;
     --text-tertiary: #94a3b8;
+    --text-on-accent: #ffffff;
     
     --border-color: #334155;
     --shadow-color: rgba(0, 0, 0, 0.3);
+    
+    --accent-primary-soft: #1e3a8a;
+    --accent-primary-dark: #64748b;
+    
+    /* Calendar colors for dark theme */
+    --color-holiday: #fb923c;
+    --color-event: #a78bfa;
+    --color-reminder: #facc15;
     
     --glass-bg: rgba(15, 23, 42, 0.7);
     --glass-border: rgba(255, 255, 255, 0.1);

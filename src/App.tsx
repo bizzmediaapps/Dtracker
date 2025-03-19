@@ -18,10 +18,11 @@ import ActivitiesList from './components/ActivitiesList';
 import './styles/ActivitiesList.css';
 import TasksView from './components/TasksView';
 import './styles/TasksView.css';
+import CalendarView from './components/CalendarView';
 
 function App() {
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'cards' | 'table' | 'tasks'>('cards');
+  const [viewMode, setViewMode] = useState<'cards' | 'table' | 'tasks' | 'calendar'>('cards');
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const savedTheme = localStorage.getItem('theme');
     return savedTheme ? savedTheme === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -223,6 +224,12 @@ function App() {
             >
               Tasks View
             </button>
+            <button 
+              className={`toggle-button ${viewMode === 'calendar' ? 'active' : ''}`}
+              onClick={() => setViewMode('calendar')}
+            >
+              Calendar View
+            </button>
           </div>
         </div>
         {viewMode === 'cards' ? (
@@ -235,9 +242,13 @@ function App() {
             employees={employees} 
             onDeleteEmployee={handleDeleteEmployee} 
           />
-        ) : (
+        ) : viewMode === 'tasks' ? (
           <TasksView 
             employees={employees} 
+          />
+        ) : (
+          <CalendarView 
+            employees={employees}
           />
         )}
       </main>
