@@ -98,6 +98,27 @@ const ActivitiesList: React.FC<ActivitiesListProps> = ({ employeeId }) => {
     }
   };
 
+  const setTaskOfDay = async (activityId: string) => {
+    try {
+      // First, reset any existing task of day for this employee
+      await supabase
+        .from('activities')
+        .update({ is_task_of_day: false })
+        .eq('employee_id', employeeId)
+        .eq('is_task_of_day', true);
+      
+      // Then set the new task of day
+      await supabase
+        .from('activities')
+        .update({ is_task_of_day: true })
+        .eq('id', activityId);
+      
+      await fetchActivities();
+    } catch (error) {
+      console.error('Error setting task of day:', error);
+    }
+  };
+
   const getStatusIcon = (status: ActivityStatus) => {
     switch (status) {
       case 'active': return '🔄';
@@ -248,6 +269,15 @@ const ActivitiesList: React.FC<ActivitiesListProps> = ({ employeeId }) => {
                     ⏱
                   </button>
                 )}
+                {activity.status === 'active' && !activity.is_task_of_day && (
+                  <button 
+                    className="today-button" 
+                    onClick={() => setTaskOfDay(activity.id)}
+                    title="Set as today's focus task"
+                  >
+                    🔥
+                  </button>
+                )}
               </div>
             </li>
           ))}
@@ -299,6 +329,15 @@ const ActivitiesList: React.FC<ActivitiesListProps> = ({ employeeId }) => {
                         title="Defer this activity"
                       >
                         ⏱
+                      </button>
+                    )}
+                    {activity.status === 'active' && !activity.is_task_of_day && (
+                      <button 
+                        className="table-action-button today-button" 
+                        onClick={() => setTaskOfDay(activity.id)}
+                        title="Set as today's focus task"
+                      >
+                        🔥
                       </button>
                     )}
                   </td>

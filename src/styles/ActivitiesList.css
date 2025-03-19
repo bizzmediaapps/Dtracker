@@ -346,4 +346,27 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+}
+
+.today-button {
+  background-color: #FFC107;
+  color: rgba(0, 0, 0, 0.8);
+}
+
+.today-button:hover {
+  background-color: #FFB300;
+  transform: scale(1.1);
+}
+
+.activity-item.status-active.is-task-of-day {
+  border-left-color: #FFC107;
+  background-color: rgba(255, 193, 7, 0.1);
+}
+
+[data-theme='dark'] .activity-item.status-active.is-task-of-day {
+  background-color: rgba(255, 193, 7, 0.15);
+}
+
+.activity-item.is-task-of-day .activity-status-icon {
+  color: #FFC107;
 } 
