@@ -32,6 +32,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({ employees }) => {
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [eventToDelete, setEventToDelete] = useState<CalendarEvent | null>(null);
+  const [selectedDateEvents, setSelectedDateEvents] = useState<{ 
+    date: Date; 
+    events: CalendarEvent[]; 
+    dayNumber: number;
+  } | null>(null);
   
   // Form state
   const [formData, setFormData] = useState<EventFormData>({
@@ -44,6 +49,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ employees }) => {
 
   const modalRef = useRef<HTMLDivElement>(null);
   const deleteModalRef = useRef<HTMLDivElement>(null);
+  const eventsModalRef = useRef<HTMLDivElement>(null);
 
   // Close modals when clicking outside
   useEffect(() => {
@@ -54,13 +60,16 @@ const CalendarView: React.FC<CalendarViewProps> = ({ employees }) => {
       if (eventToDelete && deleteModalRef.current && !deleteModalRef.current.contains(event.target as Node)) {
         setEventToDelete(null);
       }
+      if (selectedDateEvents && eventsModalRef.current && !eventsModalRef.current.contains(event.target as Node)) {
+        setSelectedDateEvents(null);
+      }
     }
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isModalOpen, eventToDelete]);
+  }, [isModalOpen, eventToDelete, selectedDateEvents]);
 
   // Generate Trinidad and Tobago holidays for a specific year
   const generateTrinidadHolidays = (year: number): CalendarEvent[] => {
@@ -290,6 +299,25 @@ const CalendarView: React.FC<CalendarViewProps> = ({ employees }) => {
   const removeEvent = (eventId: string) => {
     setEvents(prev => prev.filter(event => event.id !== eventId));
     setEventToDelete(null);
+    
+    // If we have selected date events, refresh the list
+    if (selectedDateEvents) {
+      const updatedEvents = events.filter(
+        event => event.id !== eventId && 
+        event.date.getDate() === selectedDateEvents.dayNumber &&
+        event.date.getMonth() === selectedDateEvents.date.getMonth() &&
+        event.date.getFullYear() === selectedDateEvents.date.getFullYear()
+      );
+      
+      if (updatedEvents.length === 0) {
+        setSelectedDateEvents(null);
+      } else {
+        setSelectedDateEvents({
+          ...selectedDateEvents,
+          events: updatedEvents
+        });
+      }
+    }
   };
 
   // Open modal for adding an event
@@ -317,6 +345,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({ employees }) => {
     
     setSelectedDay(day || null);
     setIsModalOpen(true);
+    // Close events modal if it's open
+    setSelectedDateEvents(null);
   };
 
   // Handle form input changes
@@ -360,6 +390,31 @@ const CalendarView: React.FC<CalendarViewProps> = ({ employees }) => {
     );
 
     setIsModalOpen(false);
+    
+    // If we added an event for the selected date, refresh the events list
+    if (selectedDateEvents && 
+        day === selectedDateEvents.dayNumber && 
+        month - 1 === selectedDateEvents.date.getMonth() && 
+        year === selectedDateEvents.date.getFullYear()) {
+      const newEvent: CalendarEvent = {
+        id: Date.now().toString(),
+        title: formData.title,
+        date: eventDate,
+        type: formData.type as 'event' | 'reminder',
+        employeeId: formData.employeeId || undefined,
+        employeeName: formData.employeeId 
+          ? employees.find(emp => emp.id === formData.employeeId)?.name 
+          : undefined,
+        color: formData.type === 'event' 
+          ? 'var(--color-event, #9C27B0)' 
+          : 'var(--color-reminder, #FF9800)'
+      };
+      
+      setSelectedDateEvents({
+        ...selectedDateEvents,
+        events: [...selectedDateEvents.events, newEvent]
+      });
+    }
   };
 
   // Calendar helpers
@@ -417,6 +472,46 @@ const CalendarView: React.FC<CalendarViewProps> = ({ employees }) => {
     }
   }, [calendarDate.getFullYear()]);
 
+  // Handle day click to show events
+  const handleDayClick = (dayNumber: number, hasEvents: boolean) => {
+    if (!hasEvents) {
+      // If there are no events, just open the add event modal
+      openAddEventModal(dayNumber);
+      return;
+    }
+    
+    const year = calendarDate.getFullYear();
+    const month = calendarDate.getMonth();
+    const clickedDate = new Date(year, month, dayNumber);
+    
+    // Filter events for this day
+    const dayEvents = events.filter(event => {
+      const eventDate = new Date(event.date);
+      const matchesDay = (
+        eventDate.getDate() === dayNumber && 
+        eventDate.getMonth() === month && 
+        eventDate.getFullYear() === year
+      );
+      
+      // Apply employee filter
+      return matchesDay && (
+        selectedEmployeeFilter === 'all' || 
+        event.employeeId === selectedEmployeeFilter || 
+        event.type === 'holiday'
+      );
+    });
+    
+    // Sort events by time
+    dayEvents.sort((a, b) => a.date.getTime() - b.date.getTime());
+    
+    setSelectedDateEvents({
+      date: clickedDate,
+      events: dayEvents,
+      dayNumber
+    });
+  };
+
+  // Function to render calendar
   const renderCalendar = () => {
     const year = calendarDate.getFullYear();
     const month = calendarDate.getMonth();
@@ -453,45 +548,69 @@ const CalendarView: React.FC<CalendarViewProps> = ({ employees }) => {
         );
       });
       
-      // Sort events by time
+      // Sort events by time for both views
       dayEvents.sort((a, b) => a.date.getTime() - b.date.getTime());
       
+      // Check if this day is selected
+      const isSelected = selectedDateEvents?.dayNumber === i && 
+                         selectedDateEvents?.date.getMonth() === month &&
+                         selectedDateEvents?.date.getFullYear() === year;
+      
+      // Determine if this day has events and what types (for mobile view)
+      const hasHoliday = dayEvents.some(event => event.type === 'holiday');
+      const hasEvent = dayEvents.some(event => event.type === 'event');
+      const hasReminder = dayEvents.some(event => event.type === 'reminder');
+      
       days.push(
-        <div key={`day-${i}`} className={`calendar-day ${isToday ? 'today' : ''}`}>
+        <div 
+          key={`day-${i}`} 
+          className={`calendar-day ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''} ${dayEvents.length > 0 ? 'has-events' : ''}`}
+          onClick={() => handleDayClick(i, dayEvents.length > 0)}
+        >
           <div className="calendar-day-number">{i}</div>
-          {dayEvents.map(event => (
-            <div 
-              key={event.id} 
-              className={`calendar-event ${event.type}`}
-              style={{ backgroundColor: event.color }}
-              title={`${event.title}${event.employeeName ? ` - ${event.employeeName}` : ''} 
-${event.type !== 'holiday' ? formatEventTime(event.date) : ''}`}
-              data-employee-id={event.employeeId || (event.type === 'holiday' ? 'holiday' : '')}
-              onClick={() => {
-                if (event.type !== 'holiday') {
-                  setEventToDelete(event);
-                }
-              }}
-            >
-              <span className="event-icon">
-                {event.type === 'holiday' ? '🎉' : event.type === 'event' ? '📅' : '⏰'}
-              </span>
-              <div className="event-content">
-                <span className="event-title">
-                  {event.title}
-                  {event.employeeName && <small className="event-employee"> - {event.employeeName}</small>}
-                </span>
-                {event.type !== 'holiday' && (
-                  <span className="event-time">{formatEventTime(event.date)}</span>
-                )}
-              </div>
+          
+          {/* Mobile View - Event Indicators */}
+          <div className="mobile-event-view">
+            <div className="event-indicators">
+              {hasHoliday && <span className="event-indicator holiday"></span>}
+              {hasEvent && <span className="event-indicator event"></span>}
+              {hasReminder && <span className="event-indicator reminder"></span>}
             </div>
-          ))}
-          <div 
-            className="add-event-button" 
-            onClick={() => openAddEventModal(i)}
-          >
-            +
+            <div className="event-count">
+              {dayEvents.length > 0 && <span>{dayEvents.length}</span>}
+            </div>
+          </div>
+          
+          {/* Desktop View - Full Events */}
+          <div className="desktop-event-view">
+            {dayEvents.map(event => (
+              <div 
+                key={event.id} 
+                className={`calendar-event ${event.type}`}
+                style={{ backgroundColor: event.color }}
+                title={`${event.title}${event.employeeName ? ` - ${event.employeeName}` : ''} 
+${event.type !== 'holiday' ? formatEventTime(event.date) : ''}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (event.type !== 'holiday') {
+                    setEventToDelete(event);
+                  }
+                }}
+              >
+                <span className="event-icon">
+                  {event.type === 'holiday' ? '🎉' : event.type === 'event' ? '📅' : '⏰'}
+                </span>
+                <div className="event-content">
+                  <span className="event-title">
+                    {event.title}
+                    {event.employeeName && <small className="event-employee"> - {event.employeeName}</small>}
+                  </span>
+                  {event.type !== 'holiday' && (
+                    <span className="event-time">{formatEventTime(event.date)}</span>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       );
@@ -503,16 +622,19 @@ ${event.type !== 'holiday' ? formatEventTime(event.date) : ''}`}
   // Function to go to previous month
   const prevMonth = () => {
     setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() - 1, 1));
+    setSelectedDateEvents(null);
   };
 
   // Function to go to next month
   const nextMonth = () => {
     setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 1));
+    setSelectedDateEvents(null);
   };
 
   // Function to go to current month
   const goToday = () => {
     setCalendarDate(new Date());
+    setSelectedDateEvents(null);
   };
 
   return (
@@ -595,6 +717,74 @@ ${event.type !== 'holiday' ? formatEventTime(event.date) : ''}`}
           </div>
         </div>
       </div>
+
+      {/* Day Events Modal */}
+      {selectedDateEvents && (
+        <div className="modal-overlay">
+          <div className="event-modal events-list-modal glass-effect" ref={eventsModalRef}>
+            <div className="modal-header">
+              <h3>Events for {getMonthName(selectedDateEvents.date.getMonth())} {selectedDateEvents.dayNumber}</h3>
+              <button 
+                className="close-modal-btn"
+                onClick={() => setSelectedDateEvents(null)}
+              >
+                ×
+              </button>
+            </div>
+            <div className="events-list">
+              {selectedDateEvents.events.length === 0 ? (
+                <div className="no-events">No events for this day</div>
+              ) : (
+                selectedDateEvents.events.map(event => (
+                  <div 
+                    key={event.id} 
+                    className={`event-list-item ${event.type}`}
+                    onClick={() => {
+                      if (event.type !== 'holiday') {
+                        setEventToDelete(event);
+                        setSelectedDateEvents(null);
+                      }
+                    }}
+                  >
+                    <div 
+                      className="event-color-indicator" 
+                      style={{ backgroundColor: event.color }}
+                    ></div>
+                    <div className="event-list-icon">
+                      {event.type === 'holiday' ? '🎉' : event.type === 'event' ? '📅' : '⏰'}
+                    </div>
+                    <div className="event-list-content">
+                      <div className="event-list-title">{event.title}</div>
+                      {event.employeeName && (
+                        <div className="event-list-employee">Assigned to: {event.employeeName}</div>
+                      )}
+                      {event.type !== 'holiday' && (
+                        <div className="event-list-time">{formatEventTime(event.date)}</div>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+            <div className="events-modal-actions">
+              <button 
+                className="add-event-btn"
+                onClick={() => {
+                  openAddEventModal(selectedDateEvents.dayNumber);
+                }}
+              >
+                + Add Event
+              </button>
+              <button 
+                className="close-btn"
+                onClick={() => setSelectedDateEvents(null)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add Event Modal */}
       {isModalOpen && (
