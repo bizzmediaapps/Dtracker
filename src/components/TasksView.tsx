@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { Employee, Activity } from '../types';
 
@@ -22,28 +22,38 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
   const [error, setError] = useState<string | null>(null);
   // Add local state for tasks of day
   const [tasksOfDay, setTasksOfDay] = useState<TasksOfDayState>({});
+  
+  // Use a ref to track if we've loaded from localStorage
+  const initializedRef = useRef(false);
 
   // Load saved tab state and tasks of day from localStorage on component mount
   useEffect(() => {
-    try {
-      // Load tab state
-      const savedTabs = localStorage.getItem('employeeTabState');
-      if (savedTabs) {
-        const parsedTabs = JSON.parse(savedTabs);
-        const validatedTabs: EmployeeTabState = {};
-        Object.keys(parsedTabs).forEach(empId => {
-          validatedTabs[empId] = parsedTabs[empId] === 'today' ? 'today' : 'all';
-        });
-        setActiveTabs(validatedTabs);
-      }
+    if (!initializedRef.current) {
+      try {
+        console.log('Loading saved state from localStorage');
+        // Load tab state
+        const savedTabs = localStorage.getItem('employeeTabState');
+        if (savedTabs) {
+          const parsedTabs = JSON.parse(savedTabs);
+          const validatedTabs: EmployeeTabState = {};
+          Object.keys(parsedTabs).forEach(empId => {
+            validatedTabs[empId] = parsedTabs[empId] === 'today' ? 'today' : 'all';
+          });
+          setActiveTabs(validatedTabs);
+        }
 
-      // Load tasks of day
-      const savedTasksOfDay = localStorage.getItem('tasksOfDay');
-      if (savedTasksOfDay) {
-        setTasksOfDay(JSON.parse(savedTasksOfDay));
+        // Load tasks of day
+        const savedTasksOfDay = localStorage.getItem('tasksOfDay');
+        if (savedTasksOfDay) {
+          const parsedTasks = JSON.parse(savedTasksOfDay);
+          console.log('Loaded tasks of day from localStorage:', parsedTasks);
+          setTasksOfDay(parsedTasks);
+        }
+        
+        initializedRef.current = true;
+      } catch (e) {
+        console.error('Error loading state from localStorage:', e);
       }
-    } catch (e) {
-      console.error('Error loading state from localStorage:', e);
     }
     
     // Initialize any missing tabs
@@ -69,9 +79,15 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
         return newTabs;
       });
     }
-    
-    fetchAllActivities();
   }, [employees]);
+
+  // Fetch activities after we've loaded state
+  useEffect(() => {
+    if (initializedRef.current) {
+      console.log('Fetching activities with tasksOfDay:', tasksOfDay);
+      fetchAllActivities();
+    }
+  }, [tasksOfDay, employees, initializedRef.current]);
 
   // Save tab state to localStorage whenever it changes
   useEffect(() => {
@@ -84,10 +100,13 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
 
   // Save tasks of day to localStorage whenever it changes
   useEffect(() => {
-    try {
-      localStorage.setItem('tasksOfDay', JSON.stringify(tasksOfDay));
-    } catch (e) {
-      console.error('Error saving tasks of day to localStorage:', e);
+    if (initializedRef.current && Object.keys(tasksOfDay).length > 0) {
+      try {
+        console.log('Saving tasks of day to localStorage:', tasksOfDay);
+        localStorage.setItem('tasksOfDay', JSON.stringify(tasksOfDay));
+      } catch (e) {
+        console.error('Error saving tasks of day to localStorage:', e);
+      }
     }
   }, [tasksOfDay]);
 
@@ -117,11 +136,18 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
         return;
       }
 
+      console.log('Fetched activities, applying tasksOfDay state:', tasksOfDay);
+      
       // Group activities by employee
       const activitiesByEmployee: {[key: string]: Activity[]} = {};
       
       // Process all fetched activities
       data.forEach(activity => {
+        const isTaskOfDay = tasksOfDay[activity.employee_id] === activity.id;
+        if (isTaskOfDay) {
+          console.log(`Activity ${activity.id} is task of day for employee ${activity.employee_id}`);
+        }
+        
         // Convert dates
         const formattedActivity = {
           ...activity,
@@ -129,7 +155,7 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
           updated_at: new Date(activity.updated_at),
           completed_at: activity.completed_at ? new Date(activity.completed_at) : null,
           // Add is_task_of_day from our local state
-          is_task_of_day: tasksOfDay[activity.employee_id] === activity.id
+          is_task_of_day: isTaskOfDay
         };
 
         // Check if this activity belongs to one of our employees
@@ -141,7 +167,18 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
         }
       });
 
+      // Switch to Today's Tasks tab for employees who have a task of day
+      Object.keys(tasksOfDay).forEach(employeeId => {
+        if (employees.some(emp => emp.id === employeeId)) {
+          setActiveTabs(prev => ({
+            ...prev,
+            [employeeId]: 'today'
+          }));
+        }
+      });
+
       setEmployeeActivities(activitiesByEmployee);
+      console.log('Set employee activities with tasks of day applied');
     } catch (error) {
       console.error('Error fetching activities:', error);
       setError('Error fetching activities. Please check console.');
@@ -152,6 +189,8 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
 
   const setTaskOfDay = async (activityId: string, employeeId: string) => {
     try {
+      console.log(`Setting activity ${activityId} as task of day for employee ${employeeId}`);
+      
       // First, ensure we're on the Today's Tasks tab and save it
       setActiveTabs(prev => {
         const newTabs: EmployeeTabState = {
@@ -172,6 +211,13 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
       // Update local state for tasks of day
       setTasksOfDay(prev => {
         const newTasksOfDay = { ...prev, [employeeId]: activityId };
+        // Save to localStorage immediately
+        try {
+          console.log('Saving tasks of day immediately:', newTasksOfDay);
+          localStorage.setItem('tasksOfDay', JSON.stringify(newTasksOfDay));
+        } catch (e) {
+          console.error('Error saving tasks of day to localStorage:', e);
+        }
         return newTasksOfDay;
       });
       
@@ -192,7 +238,7 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
 
       // For now, skip the database operations since the column doesn't exist
       // This will use our local state instead
-      console.log(`Set activity ${activityId} as task of day for employee ${employeeId} (using local storage until database schema is updated)`);
+      console.log(`Successfully set activity ${activityId} as task of day for employee ${employeeId} (using local storage)`);
       
       // Optional: Add a database operation attempt for when the column is added
       try {
@@ -244,17 +290,21 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
       
       if (!data) return;
 
+      console.log('Refreshing activities with tasksOfDay:', tasksOfDay);
+      
       // Same logic as fetchAllActivities but without tab initialization
       const activitiesByEmployee: {[key: string]: Activity[]} = {};
       
       data.forEach(activity => {
+        const isTaskOfDay = tasksOfDay[activity.employee_id] === activity.id;
+        
         const formattedActivity = {
           ...activity,
           created_at: new Date(activity.created_at),
           updated_at: new Date(activity.updated_at),
           completed_at: activity.completed_at ? new Date(activity.completed_at) : null,
           // Add is_task_of_day from our local state
-          is_task_of_day: tasksOfDay[activity.employee_id] === activity.id
+          is_task_of_day: isTaskOfDay
         };
 
         if (employees.some(emp => emp.id === activity.employee_id)) {
