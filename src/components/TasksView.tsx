@@ -638,12 +638,38 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
                                   // Prevent event propagation to avoid bubbling
                                   e.stopPropagation();
                                   
-                                  // First, capture necessary IDs 
+                                  // First, capture necessary IDs before any state updates
                                   const activityId = activity.id;
                                   const employeeId = employee.id;
                                   
-                                  // Now update the underlying data by calling setTaskOfDay
-                                  setTaskOfDay(activityId, employeeId);
+                                  // First update the UI to show changes immediately
+                                  if (selectedEmployee && selectedEmployee.activities) {
+                                    setSelectedEmployee(prev => {
+                                      // Safety check - if prev is null, don't update
+                                      if (!prev) return null;
+                                      
+                                      // IMPORTANT: Make sure we have a valid activities array before mapping
+                                      if (!Array.isArray(prev.activities)) {
+                                        return prev; // Return unchanged if not an array
+                                      }
+                                      
+                                      // Create a defensive copy of the activities array with proper type checking
+                                      const updatedActivities = prev.activities.map(a => 
+                                        a.id === activityId ? { ...a, is_task_of_day: true } : a
+                                      );
+                                      
+                                      return {
+                                        ...prev,
+                                        activities: updatedActivities
+                                      };
+                                    });
+                                  }
+                                  
+                                  // Add a small delay to ensure state updates complete first
+                                  setTimeout(() => {
+                                    // Now update the underlying data by calling setTaskOfDay
+                                    setTaskOfDay(activityId, employeeId);
+                                  }, 10);
                                 }}
                               >
                                 {getTaskOfDayButtonText(activity)}
@@ -717,21 +743,25 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
                                   // Prevent event propagation to avoid bubbling
                                   e.stopPropagation();
                                   
-                                  // First, capture necessary IDs 
+                                  // First, capture necessary IDs before any state updates
                                   const activityId = activity.id;
                                   const employeeId = selectedEmployee.employee.id;
                                   
                                   // First update the UI to show changes immediately
                                   if (selectedEmployee && selectedEmployee.activities) {
                                     setSelectedEmployee(prev => {
+                                      // Safety check - if prev is null, don't update
                                       if (!prev) return null;
                                       
-                                      // Create a defensive copy of the activities array
-                                      const updatedActivities = Array.isArray(prev.activities) 
-                                        ? prev.activities.map(a => 
-                                            a.id === activityId ? { ...a, is_task_of_day: false } : a
-                                          )
-                                        : [];
+                                      // IMPORTANT: Make sure we have a valid activities array before mapping
+                                      if (!Array.isArray(prev.activities)) {
+                                        return prev; // Return unchanged if not an array
+                                      }
+                                      
+                                      // Create a defensive copy of the activities array with proper type checking
+                                      const updatedActivities = prev.activities.map(a => 
+                                        a.id === activityId ? { ...a, is_task_of_day: false } : a
+                                      );
                                       
                                       return {
                                         ...prev,
@@ -740,8 +770,11 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
                                     });
                                   }
                                   
-                                  // Now update the underlying data by calling setTaskOfDay
-                                  setTaskOfDay(activityId, employeeId);
+                                  // Add a small delay to ensure state updates complete first
+                                  setTimeout(() => {
+                                    // Now update the underlying data by calling setTaskOfDay
+                                    setTaskOfDay(activityId, employeeId);
+                                  }, 10);
                                 }}
                               >
                                 Remove from Today's Tasks
@@ -793,21 +826,25 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
                                     // Prevent event propagation to avoid bubbling
                                     e.stopPropagation();
                                     
-                                    // First, capture necessary IDs 
+                                    // First, capture necessary IDs before any state updates
                                     const activityId = activity.id;
                                     const employeeId = selectedEmployee.employee.id;
                                     
                                     // First update the UI to show changes immediately
                                     if (selectedEmployee && selectedEmployee.activities) {
                                       setSelectedEmployee(prev => {
+                                        // Safety check - if prev is null, don't update
                                         if (!prev) return null;
                                         
-                                        // Create a defensive copy of the activities array
-                                        const updatedActivities = Array.isArray(prev.activities) 
-                                          ? prev.activities.map(a => 
-                                              a.id === activityId ? { ...a, is_task_of_day: true } : a
-                                            )
-                                          : [];
+                                        // IMPORTANT: Make sure we have a valid activities array before mapping
+                                        if (!Array.isArray(prev.activities)) {
+                                          return prev; // Return unchanged if not an array
+                                        }
+                                        
+                                        // Create a defensive copy of the activities array with proper type checking
+                                        const updatedActivities = prev.activities.map(a => 
+                                          a.id === activityId ? { ...a, is_task_of_day: true } : a
+                                        );
                                         
                                         return {
                                           ...prev,
@@ -816,8 +853,11 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
                                       });
                                     }
                                     
-                                    // Now update the underlying data by calling setTaskOfDay
-                                    setTaskOfDay(activityId, employeeId);
+                                    // Add a small delay to ensure state updates complete first
+                                    setTimeout(() => {
+                                      // Now update the underlying data by calling setTaskOfDay
+                                      setTaskOfDay(activityId, employeeId);
+                                    }, 10);
                                   }}
                                 >
                                   {getTaskOfDayButtonText(activity)}
@@ -866,21 +906,25 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
                                     // Prevent event propagation to avoid bubbling
                                     e.stopPropagation();
                                     
-                                    // First, capture necessary IDs 
+                                    // First, capture necessary IDs before any state updates
                                     const activityId = activity.id;
                                     const employeeId = selectedEmployee.employee.id;
                                     
                                     // First update the UI to show changes immediately
                                     if (selectedEmployee && selectedEmployee.activities) {
                                       setSelectedEmployee(prev => {
+                                        // Safety check - if prev is null, don't update
                                         if (!prev) return null;
                                         
-                                        // Create a defensive copy of the activities array
-                                        const updatedActivities = Array.isArray(prev.activities) 
-                                          ? prev.activities.map(a => 
-                                              a.id === activityId ? { ...a, is_task_of_day: true } : a
-                                            )
-                                          : [];
+                                        // IMPORTANT: Make sure we have a valid activities array before mapping
+                                        if (!Array.isArray(prev.activities)) {
+                                          return prev; // Return unchanged if not an array
+                                        }
+                                        
+                                        // Create a defensive copy of the activities array with proper type checking
+                                        const updatedActivities = prev.activities.map(a => 
+                                          a.id === activityId ? { ...a, is_task_of_day: true } : a
+                                        );
                                         
                                         return {
                                           ...prev,
@@ -889,8 +933,11 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
                                       });
                                     }
                                     
-                                    // Now update the underlying data by calling setTaskOfDay
-                                    setTaskOfDay(activityId, employeeId);
+                                    // Add a small delay to ensure state updates complete first
+                                    setTimeout(() => {
+                                      // Now update the underlying data by calling setTaskOfDay
+                                      setTaskOfDay(activityId, employeeId);
+                                    }, 10);
                                   }}
                                 >
                                   {getTaskOfDayButtonText(activity)}
