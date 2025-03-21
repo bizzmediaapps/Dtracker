@@ -654,7 +654,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ employees }) => {
       console.log(`Deleting event from Supabase: ${eventToRemove.title}`);
       
       // Delete from Supabase
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('calendar_events')
         .delete()
         .eq('id', eventId);
