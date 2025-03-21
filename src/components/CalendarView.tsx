@@ -22,7 +22,7 @@ interface EventFormData {
   date: string;
   time: string;
   type: 'event' | 'reminder';
-  employeeId: string;
+  employeeIds: string[];
 }
 
 interface CalendarViewProps {
@@ -51,6 +51,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ employees }) => {
     dayNumber: number;
   } | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [eventToEdit, setEventToEdit] = useState<CalendarEvent | null>(null);
   
   // Form state
   const [formData, setFormData] = useState<EventFormData>({
@@ -58,7 +59,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ employees }) => {
     date: '',
     time: '09:00',
     type: 'event',
-    employeeId: ''
+    employeeIds: []
   });
 
   const modalRef = useRef<HTMLDivElement>(null);
@@ -70,6 +71,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ employees }) => {
     function handleClickOutside(event: MouseEvent) {
       if (isModalOpen && modalRef.current && !modalRef.current.contains(event.target as Node)) {
         setIsModalOpen(false);
+        setEventToEdit(null);
       }
       if (eventToDelete && deleteModalRef.current && !deleteModalRef.current.contains(event.target as Node)) {
         setEventToDelete(null);
@@ -707,29 +709,102 @@ const CalendarView: React.FC<CalendarViewProps> = ({ employees }) => {
     }
   };
 
-  // Open modal for adding an event
-  const openAddEventModal = (day?: number) => {
+  // Update an existing event
+  const updateEvent = async (eventId: string, title: string, date: Date, type: 'event' | 'reminder', employeeId?: string) => {
+    try {
+      console.log('Updating event:', { eventId, title, date, type, employeeId });
+      
+      const employeeName = employeeId 
+        ? employees.find(emp => emp.id === employeeId)?.name 
+        : undefined;
+      
+      const color = type === 'event' 
+        ? 'var(--color-event, #9C27B0)' 
+        : 'var(--color-reminder, #FF9800)';
+      
+      // Update in Supabase
+      const { data, error } = await supabase
+        .from('calendar_events')
+        .update({
+          title,
+          date: date.toISOString(),
+          event_type: type,
+          employee_id: employeeId,
+          color
+        })
+        .eq('id', eventId)
+        .select();
+        
+      if (error) {
+        console.error('Supabase update error:', error);
+        throw error;
+      }
+      
+      console.log('Event updated in database:', data);
+      
+      // Update local state with the updated event
+      if (data && data.length > 0) {
+        const updatedEvent: CalendarEvent = {
+          ...data[0],
+          date: new Date(data[0].date),
+          employeeName
+        };
+        
+        // Update events state
+        setEvents(prevEvents => 
+          prevEvents.map(event => 
+            event.id === eventId ? updatedEvent : event
+          )
+        );
+        
+        return updatedEvent;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error updating event:', error);
+      return null;
+    }
+  };
+
+  // Open modal for adding or editing an event
+  const openEventModal = (day?: number, eventToEdit?: CalendarEvent) => {
     const year = calendarDate.getFullYear();
     const month = calendarDate.getMonth();
     const selectedDate = day || new Date().getDate();
     
     // Format date for the input (YYYY-MM-DD)
-    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(Math.min(selectedDate, daysInMonth(year, month))).padStart(2, '0')}`;
+    const dateStr = eventToEdit 
+      ? `${eventToEdit.date.getFullYear()}-${String(eventToEdit.date.getMonth() + 1).padStart(2, '0')}-${String(eventToEdit.date.getDate()).padStart(2, '0')}`
+      : `${year}-${String(month + 1).padStart(2, '0')}-${String(Math.min(selectedDate, daysInMonth(year, month))).padStart(2, '0')}`;
     
-    // Get current time rounded to nearest half hour for default
-    const now = new Date();
-    const hours = now.getHours();
-    const minutes = now.getMinutes() >= 30 ? 30 : 0;
-    const defaultTime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    // Get time from event or default to current time rounded to nearest half hour
+    let timeStr = '09:00';
+    if (eventToEdit) {
+      const hours = eventToEdit.date.getHours();
+      const minutes = eventToEdit.date.getMinutes();
+      timeStr = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    } else {
+      const now = new Date();
+      const hours = now.getHours();
+      const minutes = now.getMinutes() >= 30 ? 30 : 0;
+      timeStr = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    }
+    
+    // If editing, find the employees this event is assigned to
+    const employeeIds: string[] = [];
+    if (eventToEdit && eventToEdit.employee_id) {
+      employeeIds.push(eventToEdit.employee_id);
+    }
     
     setFormData({
-      title: '',
+      title: eventToEdit ? eventToEdit.title : '',
       date: dateStr,
-      time: defaultTime,
-      type: 'event',
-      employeeId: ''
+      time: timeStr,
+      type: eventToEdit ? (eventToEdit.event_type as 'event' | 'reminder') : 'event',
+      employeeIds: employeeIds
     });
     
+    setEventToEdit(eventToEdit || null);
     setSelectedDay(day || null);
     setIsModalOpen(true);
     // Close events modal if it's open
@@ -739,13 +814,45 @@ const CalendarView: React.FC<CalendarViewProps> = ({ employees }) => {
   // Handle form input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    
+    // Handle special case for employee multi-select
+    if (name === 'employeeIds' && e.target.multiple) {
+      const select = e.target as HTMLSelectElement;
+      const selectedOptions = Array.from(select.selectedOptions).map(option => option.value);
+      setFormData(prev => ({
+        ...prev,
+        employeeIds: selectedOptions
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
   };
 
-  // Handle form submission
+  // Handle checkbox change for employee selection
+  const handleEmployeeCheckboxChange = (employeeId: string) => {
+    setFormData(prev => {
+      const employeeIds = [...prev.employeeIds];
+      
+      if (employeeIds.includes(employeeId)) {
+        // Remove if already selected
+        return {
+          ...prev,
+          employeeIds: employeeIds.filter(id => id !== employeeId)
+        };
+      } else {
+        // Add if not selected
+        return {
+          ...prev,
+          employeeIds: [...employeeIds, employeeId]
+        };
+      }
+    });
+  };
+
+  // Handle form submission for both add and edit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -774,43 +881,75 @@ const CalendarView: React.FC<CalendarViewProps> = ({ employees }) => {
     setIsModalOpen(false);
     
     try {
-      // Add the event and get the returned new event with correct ID from database
-      const newEvent = await addEvent(
-        formData.title,
-        eventDate,
-        formData.type as 'event' | 'reminder',
-        formData.employeeId || undefined
-      );
+      // Check if we're editing or adding a new event
+      if (eventToEdit) {
+        // We're in edit mode - just update the existing event
+        await updateEvent(
+          eventToEdit.id,
+          formData.title,
+          eventDate,
+          formData.type as 'event' | 'reminder',
+          formData.employeeIds.length > 0 ? formData.employeeIds[0] : undefined
+        );
+      } else {
+        // We're adding a new event
+        // If no employees are selected, create a general event
+        if (formData.employeeIds.length === 0) {
+          await addEvent(
+            formData.title,
+            eventDate,
+            formData.type as 'event' | 'reminder'
+          );
+        } else {
+          // Create an event for each selected employee
+          for (const employeeId of formData.employeeIds) {
+            await addEvent(
+              formData.title,
+              eventDate,
+              formData.type as 'event' | 'reminder',
+              employeeId
+            );
+          }
+        }
+      }
       
-      if (newEvent) {
-        console.log('Successfully added event, now refreshing calendar');
+      // Force a complete refresh of events from the database
+      await fetchEvents();
+      
+      // If we added/edited an event for the selected date, update the selected date events
+      if (selectedDateEvents && 
+          day === selectedDateEvents.dayNumber && 
+          month - 1 === selectedDateEvents.date.getMonth() && 
+          year === selectedDateEvents.date.getFullYear()) {
         
-        // If we added an event for the selected date, update the selected date events
-        if (selectedDateEvents && 
-            day === selectedDateEvents.dayNumber && 
-            month - 1 === selectedDateEvents.date.getMonth() && 
-            year === selectedDateEvents.date.getFullYear()) {
-          
-          setSelectedDateEvents(prev => {
-            if (!prev) return null;
-            return {
-              ...prev,
-              events: [...prev.events, newEvent]
-            };
+        // Rebuild the selected date events with fresh data
+        const updatedDate = new Date(year, month - 1, selectedDateEvents.dayNumber);
+        const updatedEvents = events.filter(event => {
+          return isSameDay(event.date, updatedDate) && (
+            selectedEmployeeFilter === 'all' || 
+            event.employee_id === selectedEmployeeFilter || 
+            event.event_type === 'holiday'
+          );
+        });
+        
+        if (updatedEvents.length > 0) {
+          setSelectedDateEvents({
+            date: updatedDate,
+            events: updatedEvents,
+            dayNumber: selectedDateEvents.dayNumber
           });
         }
-        
-        // Force a complete refresh of events from the database
-        await fetchEvents();
-        
-        // Force a re-render of the calendar
-        setCalendarDate(new Date(calendarDate.getTime()));
-      } else {
-        console.error('Failed to add event - newEvent is null');
       }
+      
+      // Reset the edit state
+      setEventToEdit(null);
+      
+      // Force a re-render of the calendar
+      setCalendarDate(new Date(calendarDate.getTime()));
+      
     } catch (error) {
       console.error('Error in handleSubmit:', error);
-      alert('There was an error adding the event. Please try again.');
+      alert('There was an error processing the event. Please try again.');
     }
   };
 
@@ -849,7 +988,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ employees }) => {
   const handleDayClick = (dayNumber: number, hasEvents: boolean) => {
     if (!hasEvents) {
       // If there are no events, just open the add event modal
-      openAddEventModal(dayNumber);
+      openEventModal(dayNumber);
       return;
     }
     
@@ -966,20 +1105,78 @@ const CalendarView: React.FC<CalendarViewProps> = ({ employees }) => {
         >
           <div className="calendar-day-number">{i}</div>
           
+          {/* Add New Event Button for Each Day */}
+          <div className="day-action-buttons">
+            <button 
+              className="add-day-event-btn" 
+              onClick={(e) => {
+                e.stopPropagation();
+                openEventModal(i);
+              }}
+              title="Add event"
+            >
+              +
+            </button>
+            {dayEvents.length > 0 && (
+              <button 
+                className="view-day-events-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDayClick(i, true);
+                }}
+                title="View events"
+              >
+                {dayEvents.length}
+              </button>
+            )}
+          </div>
+          
           {/* Mobile View - Event Indicators */}
-          <div className="mobile-event-view">
+          <div className="mobile-event-view" style={{ display: 'block' }}>
             <div className="event-indicators">
               {hasHoliday && <span className="event-indicator holiday"></span>}
               {hasEvent && <span className="event-indicator event"></span>}
               {hasReminder && <span className="event-indicator reminder"></span>}
             </div>
             <div className="event-count">
-              {dayEvents.length > 0 && <span>{dayEvents.length}</span>}
+              {dayEvents.length > 0 && (
+                <button 
+                  className="day-events-icon" 
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent day click
+                    handleDayClick(i, dayEvents.length > 0); 
+                  }}
+                  title="View events"
+                >
+                  {dayEvents.length}
+                </button>
+              )}
             </div>
           </div>
           
-          {/* Desktop View - Full Events */}
-          <div className="desktop-event-view">
+          {/* Desktop View - Full Events - Now Hidden for Consistent View */}
+          <div className="desktop-event-view" style={{ display: 'none' }}>
+            {/* Add event indicators for desktop view - same as mobile */}
+            <div className="event-indicators desktop-indicators" style={{ 
+              position: 'absolute', 
+              top: '5px', 
+              left: '5px', 
+              bottom: 'auto',
+              display: 'flex',
+              gap: '3px'
+            }}>
+              {hasHoliday && <span className="event-indicator holiday" style={{ width: '10px', height: '10px' }}></span>}
+              {hasEvent && <span className="event-indicator event" style={{ width: '10px', height: '10px' }}></span>}
+              {hasReminder && <span className="event-indicator reminder" style={{ width: '10px', height: '10px' }}></span>}
+              {dayEvents.length > 0 && <span className="event-count-badge" style={{ 
+                fontSize: '0.7rem',
+                background: 'rgba(0,0,0,0.1)',
+                borderRadius: '10px',
+                padding: '0 4px',
+                marginLeft: '2px'
+              }}>{dayEvents.length}</span>}
+            </div>
+            
             {dayEvents.map(event => (
               <div 
                 key={event.id} 
@@ -990,7 +1187,12 @@ ${event.event_type !== 'holiday' ? formatEventTime(event.date) : ''}`}
                 onClick={(e) => {
                   e.stopPropagation();
                   if (event.event_type !== 'holiday' || !event.is_trinidad_holiday) {
-                    setEventToDelete(event);
+                    if (event.is_trinidad_holiday) {
+                      // Trinidad holidays can't be modified
+                      alert("Trinidad holidays cannot be edited or deleted.");
+                    } else {
+                      openEventModal(undefined, event);
+                    }
                   }
                 }}
               >
@@ -1034,6 +1236,296 @@ ${event.event_type !== 'holiday' ? formatEventTime(event.date) : ''}`}
     setSelectedDateEvents(null);
   };
 
+  // Add a style override to ensure desktop events are always displayed
+  useEffect(() => {
+    // Create a style element
+    const style = document.createElement('style');
+    
+    // Define the CSS to override the media query
+    style.textContent = `
+      /* Show mobile view on all screen sizes */
+      .mobile-event-view {
+        display: block !important;
+      }
+      
+      /* Hide desktop view on all screen sizes */
+      .desktop-event-view {
+        display: none !important;
+      }
+      
+      /* Adjust calendar day for the mobile layout */
+      .calendar-day {
+        min-height: 70px !important;
+        position: relative;
+      }
+      
+      /* Ensure day number is positioned correctly */
+      .calendar-day-number {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        font-weight: bold;
+      }
+      
+      /* Position indicators consistently */
+      .event-indicators {
+        position: absolute;
+        bottom: 5px;
+        left: 5px;
+        display: flex;
+        gap: 2px;
+      }
+      
+      /* Style the event count indicator */
+      .event-count {
+        position: absolute;
+        bottom: 5px;
+        right: 5px;
+      }
+      
+      /* Day action buttons */
+      .day-action-buttons {
+        position: absolute;
+        top: 5px;
+        left: 5px;
+        display: flex;
+        gap: 5px;
+        opacity: 0;
+        transition: opacity 0.2s;
+      }
+      
+      .calendar-day:hover .day-action-buttons {
+        opacity: 1;
+      }
+      
+      .add-day-event-btn, .view-day-events-btn {
+        font-size: 0.75rem;
+        background: rgba(0,0,0,0.1);
+        border: none;
+        border-radius: 50%;
+        width: 18px;
+        height: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+      
+      .add-day-event-btn:hover {
+        background: rgba(0,120,255,0.3);
+      }
+      
+      .view-day-events-btn:hover {
+        background: rgba(0,0,0,0.2);
+      }
+      
+      .day-events-icon {
+        font-size: 0.75rem;
+        background: rgba(0,0,0,0.1);
+        border: none;
+        border-radius: 50%;
+        width: 18px;
+        height: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+      
+      .day-events-icon:hover {
+        background: rgba(0,0,0,0.2);
+      }
+      
+      /* Style for event list actions */
+      .event-list-actions {
+        display: flex;
+        gap: 5px;
+        margin-left: auto;
+      }
+      
+      .event-edit-btn, .event-delete-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 1rem;
+        padding: 5px;
+        border-radius: 4px;
+        transition: background-color 0.2s;
+      }
+      
+      .event-edit-btn:hover, .event-delete-btn:hover {
+        background-color: rgba(0, 0, 0, 0.1);
+      }
+      
+      /* Style the employee checkbox list */
+      .employee-checkbox-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 8px;
+        max-height: 150px;
+        overflow-y: auto;
+        padding: 10px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+      }
+      
+      .employee-checkbox-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        padding: 4px;
+      }
+      
+      .employee-checkbox-item span {
+        font-size: 0.9rem;
+      }
+      
+      .employee-checkbox-item:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+      }
+      
+      /* Style the edit button */
+      .edit-btn {
+        background-color: #3498db;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+      
+      .edit-btn:hover {
+        background-color: #2980b9;
+      }
+      
+      /* Ensure buttons have proper spacing */
+      .form-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      
+      .form-actions-right {
+        display: flex;
+        gap: 10px;
+      }
+      
+      /* Style the delete confirmation modal */
+      .delete-modal {
+        max-width: 400px;
+      }
+      
+      .delete-header {
+        background: var(--color-danger, #e74c3c);
+        color: white;
+      }
+      
+      .delete-confirmation {
+        padding: 20px;
+        text-align: center;
+      }
+      
+      .delete-icon {
+        font-size: 2.5rem;
+        margin-bottom: 15px;
+      }
+      
+      .delete-subtitle {
+        color: rgba(255, 255, 255, 0.7);
+        margin: 5px 0;
+      }
+      
+      .delete-message {
+        font-weight: bold;
+        margin: 20px 0;
+        color: var(--color-danger, #e74c3c);
+      }
+      
+      .delete-btn {
+        background-color: var(--color-danger, #e74c3c);
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+      
+      .delete-btn:hover {
+        background-color: #c0392b;
+      }
+      
+      /* Style for event list */
+      .events-list {
+        max-height: 350px;
+        overflow-y: auto;
+        margin: 10px 0;
+        padding: 5px;
+      }
+      
+      .event-list-item {
+        display: flex;
+        align-items: center;
+        padding: 12px 15px;
+        border-radius: 6px;
+        margin-bottom: 8px;
+        transition: background-color 0.2s, transform 0.1s, box-shadow 0.2s;
+        position: relative;
+        overflow: hidden;
+      }
+      
+      .event-list-item:not(.holiday) {
+        transition: background-color 0.2s, transform 0.1s, box-shadow 0.2s;
+      }
+      
+      .event-list-item:not(.holiday):hover {
+        background-color: rgba(255, 255, 255, 0.1);
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+      
+      .event-color-indicator {
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+      }
+      
+      .event-list-icon {
+        margin-right: 12px;
+        font-size: 1.2rem;
+      }
+      
+      .event-list-content {
+        flex: 1;
+      }
+      
+      .event-list-title {
+        font-weight: bold;
+        margin-bottom: 3px;
+      }
+      
+      .event-list-employee, .event-list-time {
+        font-size: 0.85rem;
+        opacity: 0.8;
+      }
+    `;
+    
+    // Append it to the head
+    document.head.appendChild(style);
+    
+    // Clean up on unmount
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
   return (
     <div className="calendar-view glass-effect">
       {isLoading ? (
@@ -1046,7 +1538,7 @@ ${event.event_type !== 'holiday' ? formatEventTime(event.date) : ''}`}
             <div className="calendar-actions">
               <button 
                 className="add-event-global-button glass-button"
-                onClick={() => openAddEventModal()}
+                onClick={() => openEventModal()}
               >
                 <span className="button-icon">+</span> Add Event
               </button>
@@ -1141,11 +1633,14 @@ ${event.event_type !== 'holiday' ? formatEventTime(event.date) : ''}`}
                         key={event.id} 
                         className={`event-list-item ${event.event_type}`}
                         onClick={() => {
-                          if (event.event_type !== 'holiday' || !event.is_trinidad_holiday) {
-                            setEventToDelete(event);
+                          if (!event.is_trinidad_holiday) {
                             setSelectedDateEvents(null);
+                            openEventModal(undefined, event);
+                          } else {
+                            alert("Trinidad holidays cannot be edited or deleted.");
                           }
                         }}
+                        style={{ cursor: !event.is_trinidad_holiday ? 'pointer' : 'default' }}
                       >
                         <div 
                           className="event-color-indicator" 
@@ -1171,7 +1666,7 @@ ${event.event_type !== 'holiday' ? formatEventTime(event.date) : ''}`}
                   <button 
                     className="add-event-btn"
                     onClick={() => {
-                      openAddEventModal(selectedDateEvents.dayNumber);
+                      openEventModal(selectedDateEvents.dayNumber);
                     }}
                   >
                     + Add Event
@@ -1187,15 +1682,25 @@ ${event.event_type !== 'holiday' ? formatEventTime(event.date) : ''}`}
             </div>
           )}
 
-          {/* Add Event Modal */}
+          {/* Add/Edit Event Modal */}
           {isModalOpen && (
             <div className="modal-overlay">
               <div className="event-modal glass-effect" ref={modalRef}>
                 <div className="modal-header">
-                  <h3>{selectedDay ? `Add Event for ${getMonthName(calendarDate.getMonth())} ${selectedDay}` : 'Add New Event'}</h3>
+                  <h3>
+                    {eventToEdit 
+                      ? `Edit Event: ${eventToEdit.title}` 
+                      : selectedDay 
+                        ? `Add Event for ${getMonthName(calendarDate.getMonth())} ${selectedDay}` 
+                        : 'Add New Event'
+                    }
+                  </h3>
                   <button 
                     className="close-modal-btn"
-                    onClick={() => setIsModalOpen(false)}
+                    onClick={() => {
+                      setIsModalOpen(false);
+                      setEventToEdit(null);
+                    }}
                   >
                     ×
                   </button>
@@ -1272,36 +1777,55 @@ ${event.event_type !== 'holiday' ? formatEventTime(event.date) : ''}`}
                   
                   {employees.length > 0 && (
                     <div className="form-group">
-                      <label htmlFor="employeeId">Assign to Employee (Optional)</label>
-                      <select
-                        id="employeeId"
-                        name="employeeId"
-                        value={formData.employeeId}
-                        onChange={handleInputChange}
-                        className="form-control"
-                      >
-                        <option value="">Not assigned</option>
+                      <label htmlFor="employeeIds">Assign to Employees</label>
+                      <div className="employee-checkbox-list">
                         {employees.map(emp => (
-                          <option key={emp.id} value={emp.id}>{emp.name}</option>
+                          <label key={emp.id} className="employee-checkbox-item">
+                            <input
+                              type="checkbox"
+                              name="employeeIds"
+                              value={emp.id}
+                              checked={formData.employeeIds.includes(emp.id)}
+                              onChange={() => handleEmployeeCheckboxChange(emp.id)}
+                            />
+                            <span>{emp.name}</span>
+                          </label>
                         ))}
-                      </select>
+                      </div>
                     </div>
                   )}
                   
                   <div className="form-actions">
-                    <button 
-                      type="button" 
-                      className="cancel-btn"
-                      onClick={() => setIsModalOpen(false)}
-                    >
-                      Cancel
-                    </button>
-                    <button 
-                      type="submit" 
-                      className="submit-btn"
-                    >
-                      Add Event
-                    </button>
+                    {eventToEdit && !eventToEdit.is_trinidad_holiday && (
+                      <button 
+                        type="button" 
+                        className="delete-btn"
+                        onClick={() => {
+                          setIsModalOpen(false);
+                          setEventToDelete(eventToEdit);
+                        }}
+                      >
+                        <span className="button-icon">🗑️</span> Delete
+                      </button>
+                    )}
+                    <div className="form-actions-right">
+                      <button 
+                        type="button" 
+                        className="cancel-btn"
+                        onClick={() => {
+                          setIsModalOpen(false);
+                          setEventToEdit(null);
+                        }}
+                      >
+                        Cancel
+                      </button>
+                      <button 
+                        type="submit" 
+                        className="submit-btn"
+                      >
+                        {eventToEdit ? 'Update Event' : 'Add Event'}
+                      </button>
+                    </div>
                   </div>
                 </form>
               </div>
@@ -1336,18 +1860,33 @@ ${event.event_type !== 'holiday' ? formatEventTime(event.date) : ''}`}
                   <div className="form-actions">
                     <button 
                       type="button" 
-                      className="cancel-btn"
-                      onClick={() => setEventToDelete(null)}
+                      className="edit-btn"
+                      onClick={() => {
+                        if (eventToDelete) {
+                          const event = eventToDelete;
+                          setEventToDelete(null);
+                          openEventModal(undefined, event);
+                        }
+                      }}
                     >
-                      Cancel
+                      <span className="button-icon">✏️</span> Edit
                     </button>
-                    <button 
-                      type="button" 
-                      className="delete-btn"
-                      onClick={() => removeEvent(eventToDelete.id)}
-                    >
-                      Delete Event
-                    </button>
+                    <div className="form-actions-right">
+                      <button 
+                        type="button" 
+                        className="cancel-btn"
+                        onClick={() => setEventToDelete(null)}
+                      >
+                        Cancel
+                      </button>
+                      <button 
+                        type="button" 
+                        className="delete-btn"
+                        onClick={() => removeEvent(eventToDelete!.id)}
+                      >
+                        <span className="button-icon">🗑️</span> Delete
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

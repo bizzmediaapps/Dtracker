@@ -1,10 +1,13 @@
 .tasks-view {
   margin-top: 20px;
   padding: 24px;
+  border-radius: 10px;
+  background-color: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .tasks-view h2 {
-  color: var(--text-primary);
+  color: #333;
   font-size: 1.5rem;
   font-weight: 600;
   margin-bottom: 24px;
@@ -17,23 +20,23 @@
 }
 
 .employee-tasks-card {
-  background: var(--bg-primary);
-  border-radius: 16px;
+  background: #fff;
+  border-radius: 12px;
   overflow: hidden;
-  border: 1px solid var(--border-color);
-  box-shadow: var(--shadow-sm);
+  border: 1px solid #eaeaea;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   transition: all 0.3s ease;
 }
 
 .employee-tasks-card:hover {
   transform: translateY(-5px);
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
 }
 
 .employee-tasks-header {
   padding: 16px;
-  border-bottom: 1px solid var(--border-color);
-  background: var(--bg-secondary);
+  border-bottom: 1px solid #eaeaea;
+  background: #f8f9fa;
 }
 
 .employee-info {
@@ -46,7 +49,53 @@
   margin: 0;
   font-size: 1.2rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: #2d3748;
+  position: relative;
+  transition: color 0.2s ease;
+  cursor: pointer;
+}
+
+.employee-name:hover {
+  color: #3182ce;
+}
+
+.employee-name:after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  width: 0;
+  height: 2px;
+  background-color: #3182ce;
+  transition: width 0.2s ease;
+}
+
+.employee-name:hover:after {
+  width: 100%;
+}
+
+/* Adding a small icon to indicate clickable */
+.employee-name:before {
+  content: '👁️';
+  font-size: 0.8rem;
+  margin-right: 6px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.employee-name:hover:before {
+  opacity: 1;
+}
+
+/* Dark theme adjustments for employee name */
+@media (prefers-color-scheme: dark) {
+  .employee-name:hover {
+    color: #63b3ed;
+  }
+  
+  .employee-name:after {
+    background-color: #63b3ed;
+  }
 }
 
 .status-pill {
@@ -58,18 +107,38 @@
   font-weight: 500;
 }
 
+/* Status pill colors */
+.employee-info .status-pill[style*="background-color: var(--status-in-office)"] {
+  background-color: #38a169 !important; /* Green for In Office */
+}
+
+.employee-info .status-pill[style*="background-color: var(--status-off)"] {
+  background-color: #718096 !important; /* Gray for Off */
+}
+
+.employee-info .status-pill[style*="background-color: var(--status-on-job)"] {
+  background-color: #3182ce !important; /* Blue for On Job */
+}
+
+.employee-info .status-pill[style*="background-color: var(--status-wfh)"] {
+  background-color: #8854d0 !important; /* Purple for WFH */
+}
+
 .employee-tasks-list {
   padding: 16px;
   max-height: 300px;
   overflow-y: auto;
-  background-color: var(--bg-primary);
+  background-color: #fff;
 }
 
 .no-tasks, .no-employees, .loading-tasks {
-  color: var(--text-secondary);
+  color: #718096;
   text-align: center;
   padding: 20px;
   font-style: italic;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin: 10px 0;
 }
 
 .tasks-list {
@@ -79,18 +148,19 @@
 }
 
 .task-item {
-  padding: 12px;
-  border-radius: 8px;
-  margin-bottom: 8px;
-  background: var(--bg-secondary);
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  transition: all 0.2s ease;
+  flex-direction: column;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s ease-in-out;
 }
 
 .task-item:hover {
-  background: var(--bg-tertiary);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
 }
 
 .task-content {
@@ -104,69 +174,71 @@
 }
 
 .task-description {
-  color: var(--text-primary);
+  color: #2d3748;
   font-size: 0.95rem;
   flex: 1;
 }
 
 .task-date {
-  color: var(--text-tertiary);
+  color: #718096;
   font-size: 0.8rem;
   white-space: nowrap;
 }
 
-[data-theme='dark'] .employee-tasks-card {
-  background: var(--bg-secondary);
-}
-
-[data-theme='dark'] .employee-tasks-header {
-  background: var(--bg-tertiary);
-}
-
-[data-theme='dark'] .task-item {
-  background: var(--bg-tertiary);
-}
-
-[data-theme='dark'] .task-item:hover {
-  background: var(--bg-primary);
-}
-
 .task-of-day {
-  background: rgba(255, 193, 7, 0.1) !important;
-  border-left: 4px solid #FFC107 !important;
-  position: relative;
-}
-
-[data-theme='dark'] .task-of-day {
-  background: rgba(255, 193, 7, 0.15) !important;
+  background-color: rgba(255, 221, 89, 0.2);
+  border-left: 4px solid #ffdd59;
 }
 
 .task-day-badge {
-  background-color: #FFC107;
-  color: rgba(0, 0, 0, 0.8);
+  background-color: #ffdd59;
+  color: #222;
   font-size: 0.7rem;
-  font-weight: 600;
-  padding: 3px 8px;
-  border-radius: 12px;
-  margin-left: 10px;
-  display: inline-block;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 8px;
 }
 
 .set-today-button {
-  background-color: transparent;
-  border: 1px solid #FFC107;
-  color: #FFC107;
-  font-size: 0.8rem;
-  padding: 4px 8px;
+  padding: 6px 10px;
+  background-color: var(--accent-primary, #3182ce);
+  color: white;
+  border: none;
   border-radius: 4px;
   cursor: pointer;
-  margin-left: 10px;
-  transition: all 0.2s ease;
+  font-size: 0.8rem;
+  transition: background-color 0.2s ease;
 }
 
 .set-today-button:hover {
-  background-color: #FFC107;
-  color: rgba(0, 0, 0, 0.8);
+  background-color: var(--accent-hover, #2b6cb0);
+}
+
+.remove-today-button {
+  background-color: var(--error-color, #e53935);
+}
+
+.remove-today-button:hover {
+  background-color: var(--error-hover, #c62828);
+}
+
+/* Today's Focus section styling */
+li.task-of-day {
+  background-color: var(--bg-highlight, rgba(255, 152, 0, 0.15));
+  border-left: 3px solid var(--accent-secondary, #ff9800);
+}
+
+/* Style for task of day badge */
+.task-day-badge {
+  display: inline-block;
+  background-color: var(--accent-secondary, #ff9800);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: bold;
+  margin-left: 8px;
 }
 
 .task-actions {
@@ -177,8 +249,8 @@
 .employee-tasks-tabs {
   display: flex;
   padding: 0;
-  background-color: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-color);
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #eaeaea;
 }
 
 .employee-tab-button {
@@ -187,7 +259,7 @@
   background: transparent;
   border: none;
   border-bottom: 2px solid transparent;
-  color: var(--text-secondary);
+  color: #718096;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -198,19 +270,19 @@
 }
 
 .employee-tab-button.active {
-  color: var(--accent-primary);
-  border-bottom: 2px solid var(--accent-primary);
-  background-color: rgba(59, 130, 246, 0.05);
+  color: #3182ce;
+  border-bottom: 2px solid #3182ce;
+  background-color: rgba(49, 130, 206, 0.08);
 }
 
 .employee-tab-button:hover:not(.active) {
-  background-color: var(--bg-tertiary);
-  color: var(--text-primary);
+  background-color: #f1f3f5;
+  color: #4a5568;
 }
 
 .task-count {
-  background-color: var(--bg-tertiary);
-  color: var(--text-secondary);
+  background-color: #edf2f7;
+  color: #4a5568;
   font-size: 0.7rem;
   font-weight: 600;
   padding: 2px 6px;
@@ -219,20 +291,240 @@
 }
 
 .employee-tab-button.active .task-count {
-  background-color: var(--accent-primary);
+  background-color: #3182ce;
   color: white;
 }
 
-[data-theme='dark'] .employee-tasks-tabs {
-  background-color: var(--bg-tertiary);
+/* Dark theme adjustments - Using data-theme attribute for manual theme switching */
+[data-theme="dark"] .tasks-view {
+  background-color: rgba(30, 41, 59, 0.95);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
-[data-theme='dark'] .employee-tab-button.active {
-  background-color: rgba(59, 130, 246, 0.1);
+[data-theme="dark"] .tasks-view h2 {
+  color: #f1f5f9;
 }
 
-[data-theme='dark'] .task-count {
-  background-color: var(--bg-primary);
+[data-theme="dark"] .employee-tasks-card {
+  background: #1e293b;
+  border-color: #334155;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="dark"] .employee-tasks-header {
+  background: #334155;
+  border-color: #475569;
+}
+
+[data-theme="dark"] .employee-name {
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .employee-name:hover {
+  color: #63b3ed;
+}
+
+[data-theme="dark"] .employee-name:after {
+  background-color: #63b3ed;
+}
+
+[data-theme="dark"] .employee-tasks-list {
+  background-color: #1e293b;
+}
+
+[data-theme="dark"] .no-tasks, 
+[data-theme="dark"] .no-employees, 
+[data-theme="dark"] .loading-tasks {
+  color: #cbd5e1;
+  background: #334155;
+}
+
+[data-theme="dark"] .task-item {
+  background-color: #334155;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="dark"] .task-description {
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .task-date {
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .task-of-day {
+  background-color: rgba(255, 221, 89, 0.1);
+}
+
+[data-theme="dark"] .employee-tasks-tabs {
+  background-color: #334155;
+  border-color: #475569;
+}
+
+[data-theme="dark"] .employee-tab-button {
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .employee-tab-button.active {
+  color: #63b3ed;
+  border-bottom: 2px solid #63b3ed;
+  background-color: rgba(99, 179, 237, 0.15);
+}
+
+[data-theme="dark"] .employee-tab-button:hover:not(.active) {
+  background-color: #475569;
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .task-count {
+  background-color: #475569;
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .employee-tab-button.active .task-count {
+  background-color: #63b3ed;
+  color: #1e293b;
+}
+
+/* Modal dark theme */
+[data-theme="dark"] .modal-overlay {
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+[data-theme="dark"] .employee-modal {
+  background: #1e293b;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .modal-header {
+  background: #334155;
+  border-color: #475569;
+}
+
+[data-theme="dark"] .modal-header h3 {
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .close-modal-btn {
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .close-modal-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .modal-content {
+  background-color: #1e293b;
+}
+
+[data-theme="dark"] .modal-footer {
+  background: #334155;
+  border-color: #475569;
+}
+
+[data-theme="dark"] .close-btn {
+  background: #475569;
+  border-color: #64748b;
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .close-btn:hover {
+  background: #64748b;
+  color: #f8fafc;
+}
+
+/* Task categories dark theme */
+[data-theme="dark"] .task-category-section {
+  background-color: #334155;
+}
+
+[data-theme="dark"] .task-category-title {
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .empty-category {
+  color: #cbd5e1;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Modal tasks dark theme */
+[data-theme="dark"] .modal-task-item {
+  background-color: #334155;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="dark"] .modal-task-item.task-of-day {
+  background-color: rgba(255, 221, 89, 0.1);
+}
+
+[data-theme="dark"] .modal-task-item.recurring-task {
+  background-color: rgba(108, 92, 231, 0.1);
+}
+
+[data-theme="dark"] .modal-task-item.task-of-day.recurring-task {
+  background: linear-gradient(135deg, rgba(255, 221, 89, 0.1) 0%, rgba(108, 92, 231, 0.1) 100%);
+}
+
+[data-theme="dark"] .task-meta {
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .task-recurrence {
+  color: #a29bfe;
+}
+
+[data-theme="dark"] .task-due-date.due-today {
+  color: #fab1a0;
+}
+
+[data-theme="dark"] .task-due-date.overdue {
+  color: #ff7675;
+}
+
+[data-theme="dark"] .task-status-badge {
+  background-color: #4a5568;
+}
+
+[data-theme="dark"] .task-status-badge.active {
+  background-color: #38a169;
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .task-status-badge.deferred {
+  background-color: #ed8936;
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .task-status-badge.completed {
+  background-color: #38b2ac;
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .task-recurring-badge {
+  background-color: #6c5ce7;
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .category-tasks::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Status pill colors - dark mode overrides */
+[data-theme="dark"] .employee-info .status-pill[style*="background-color: var(--status-in-office)"] {
+  background-color: #38a169 !important;
+}
+
+[data-theme="dark"] .employee-info .status-pill[style*="background-color: var(--status-off)"] {
+  background-color: #718096 !important;
+}
+
+[data-theme="dark"] .employee-info .status-pill[style*="background-color: var(--status-on-job)"] {
+  background-color: #3182ce !important;
+}
+
+[data-theme="dark"] .employee-info .status-pill[style*="background-color: var(--status-wfh)"] {
+  background-color: #8854d0 !important;
 }
 
 /* Add these styles for better status visualization */
@@ -277,4 +569,334 @@
 /* Override for task of day */
 .task-item.task-of-day {
   border-left: 4px solid #FFC107 !important;
+}
+
+/* Modal Overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(3px);
+}
+
+/* Employee Tasks Modal */
+.employee-modal {
+  width: 90%;
+  max-width: 700px;
+  max-height: 90vh;
+  background: #fff;
+  border-radius: 16px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  animation: modalFadeIn 0.3s ease;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  padding: 16px 24px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #eaeaea;
+  position: relative;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #2d3748;
+  flex: 1;
+}
+
+.modal-header .status-pill {
+  margin-right: 42px;
+}
+
+.close-modal-btn {
+  position: absolute;
+  right: 16px;
+  top: 16px;
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  color: #718096;
+  cursor: pointer;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.close-modal-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: #2d3748;
+}
+
+.modal-content {
+  padding: 20px 24px;
+  overflow-y: auto;
+  max-height: calc(90vh - 160px);
+  background-color: #fff;
+}
+
+.modal-footer {
+  padding: 16px 24px;
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px solid #eaeaea;
+  background: #f8f9fa;
+}
+
+.close-btn {
+  padding: 8px 16px;
+  background: #edf2f7;
+  border: 1px solid #e2e8f0;
+  color: #4a5568;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.close-btn:hover {
+  background: #e2e8f0;
+  color: #2d3748;
+}
+
+/* Task Category Section */
+.task-category-section {
+  margin-bottom: 20px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.task-category-section:nth-child(2) {
+  border-left: 4px solid #ffdd59;  /* Today's Focus */
+}
+
+.task-category-section:nth-child(3) {
+  border-left: 4px solid #6c5ce7;  /* Recurring Tasks */
+}
+
+.task-category-section:nth-child(4) {
+  border-left: 4px solid #38a169;  /* Active Tasks */
+}
+
+.task-category-section:nth-child(5) {
+  border-left: 4px solid #ed8936;  /* Deferred Tasks */
+}
+
+.task-category-section:nth-child(6) {
+  border-left: 4px solid #38b2ac;  /* Completed Tasks */
+}
+
+.task-category-section:nth-child(2) .empty-category::before {
+  content: "🔍 ";
+}
+
+.task-category-section:nth-child(3) .empty-category::before {
+  content: "🔁 ";
+}
+
+.task-category-section:nth-child(4) .empty-category::before {
+  content: "📋 ";
+}
+
+.task-category-section:nth-child(5) .empty-category::before {
+  content: "⏰ ";
+}
+
+.task-category-section:nth-child(6) .empty-category::before {
+  content: "🎯 ";
+}
+
+/* Modal Tasks List */
+.modal-tasks-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.modal-task-item {
+  display: flex;
+  flex-direction: column;
+  background-color: #fff;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s ease-in-out;
+}
+
+.modal-task-item:hover {
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.modal-task-item.task-of-day {
+  background-color: rgba(255, 221, 89, 0.2);
+  border-left: 4px solid #ffdd59;
+}
+
+.modal-task-item.recurring-task {
+  background-color: rgba(108, 92, 231, 0.08);
+  border-left: 4px solid #6c5ce7;
+}
+
+.modal-task-item.task-of-day.recurring-task {
+  background: linear-gradient(135deg, rgba(255, 221, 89, 0.2) 0%, rgba(108, 92, 231, 0.08) 100%);
+  border-left: 4px solid #e17055;
+}
+
+.modal-task-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.task-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  font-size: 0.8rem;
+  color: #718096;
+  margin-top: 6px;
+  gap: 10px;
+}
+
+.task-recurrence {
+  display: flex;
+  align-items: center;
+  color: #6c5ce7;
+  font-weight: 500;
+}
+
+.task-due-date {
+  display: flex;
+  align-items: center;
+  font-weight: 500;
+}
+
+/* Style for tasks due today */
+.task-due-date.due-today {
+  color: #e17055;
+  font-weight: bold;
+}
+
+/* Style for overdue tasks */
+.task-due-date.overdue {
+  color: #e53e3e;
+  font-weight: bold;
+}
+
+/* Task Status Badge */
+.task-status-badge {
+  font-size: 0.7rem;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 8px;
+  background-color: #cbd5e0;
+}
+
+.task-status-badge.active {
+  background-color: #38a169;
+  color: #fff;
+}
+
+.task-status-badge.deferred {
+  background-color: #ed8936;
+  color: #fff;
+}
+
+.task-status-badge.completed {
+  background-color: #38b2ac;
+  color: #fff;
+}
+
+/* Recurring Task Styles */
+.task-item.recurring-task {
+  background-color: rgba(108, 92, 231, 0.08);
+  border-left: 4px solid #6c5ce7;
+}
+
+.task-item.task-of-day.recurring-task {
+  background: linear-gradient(135deg, rgba(255, 221, 89, 0.2) 0%, rgba(108, 92, 231, 0.08) 100%);
+  border-left: 4px solid #e17055;
+}
+
+/* Recurring Task Badge */
+.task-recurring-badge {
+  background-color: #6c5ce7;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 8px;
+}
+
+.task-category-title {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+  font-size: 1.1rem;
+  color: #2d3748;
+}
+
+.category-icon {
+  margin-right: 8px;
+  font-size: 1.2rem;
+}
+
+.category-tasks {
+  max-height: 300px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+.category-tasks::-webkit-scrollbar {
+  width: 6px;
+}
+
+.category-tasks::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.category-tasks::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+.empty-category {
+  color: #718096;
+  font-style: italic;
+  padding: 10px;
+  text-align: center;
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 4px;
 } 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
-import { Employee, Activity } from '../types';
+import { Employee, Activity, ActivityStatus, RecurrencePattern } from '../types';
 
 interface TasksViewProps {
   employees: Employee[];
@@ -12,7 +12,13 @@ interface EmployeeTabState {
 
 // Keep track of tasks of the day in local storage until database schema is updated
 interface TasksOfDayState {
-  [employeeId: string]: string; // employeeId -> activityId
+  [employeeId: string]: string[]; // employeeId -> array of activityIds
+}
+
+// Interface for selected employee modal
+interface SelectedEmployeeModal {
+  employee: Employee;
+  activities: Activity[];
 }
 
 const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
@@ -21,10 +27,52 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
   const [activeTabs, setActiveTabs] = useState<EmployeeTabState>({});
   const [error, setError] = useState<string | null>(null);
   // Add local state for tasks of day
-  const [tasksOfDay, setTasksOfDay] = useState<TasksOfDayState>({});
+  const [tasksOfDay, setTasksOfDay] = useState<TasksOfDayState>(() => {
+    try {
+      const savedTasks = localStorage.getItem('tasksOfDay');
+      if (savedTasks) {
+        const parsed = JSON.parse(savedTasks);
+        
+        // Convert from old format (single task) to new format (array of tasks)
+        const convertedTasks: TasksOfDayState = {};
+        Object.keys(parsed).forEach(employeeId => {
+          if (Array.isArray(parsed[employeeId])) {
+            // Already in new format
+            convertedTasks[employeeId] = parsed[employeeId];
+          } else {
+            // Convert from old format
+            convertedTasks[employeeId] = [parsed[employeeId]];
+          }
+        });
+        
+        return convertedTasks;
+      }
+      return {};
+    } catch (e) {
+      console.error('Error loading tasks of day from localStorage:', e);
+      return {};
+    }
+  });
+  // New state for selected employee modal
+  const [selectedEmployee, setSelectedEmployee] = useState<SelectedEmployeeModal | null>(null);
   
   // Use a ref to track if we've loaded from localStorage
   const initializedRef = useRef(false);
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  // Effect for closing the modal when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (selectedEmployee && modalRef.current && !modalRef.current.contains(event.target as Node)) {
+        setSelectedEmployee(null);
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [selectedEmployee]);
 
   // Load saved tab state and tasks of day from localStorage on component mount
   useEffect(() => {
@@ -143,7 +191,10 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
       
       // Process all fetched activities
       data.forEach(activity => {
-        const isTaskOfDay = tasksOfDay[activity.employee_id] === activity.id;
+        // Check if this activity is a task of day for its employee
+        const employeeTasks = tasksOfDay[activity.employee_id] || [];
+        const isTaskOfDay = employeeTasks.includes(activity.id);
+        
         if (isTaskOfDay) {
           console.log(`Activity ${activity.id} is task of day for employee ${activity.employee_id}`);
         }
@@ -210,7 +261,17 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
       
       // Update local state for tasks of day
       setTasksOfDay(prev => {
-        const newTasksOfDay = { ...prev, [employeeId]: activityId };
+        const employeeTasks = prev[employeeId] || [];
+        // Check if this task is already a task of day
+        const isAlreadyTaskOfDay = employeeTasks.includes(activityId);
+        
+        // If it's already a task of day, we'll remove it (toggle behavior)
+        const newEmployeeTasks = isAlreadyTaskOfDay
+          ? employeeTasks.filter(id => id !== activityId)
+          : [...employeeTasks, activityId];
+        
+        const newTasksOfDay = { ...prev, [employeeId]: newEmployeeTasks };
+        
         // Save to localStorage immediately
         try {
           console.log('Saving tasks of day immediately:', newTasksOfDay);
@@ -225,12 +286,18 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
       setEmployeeActivities(prevActivities => {
         const updatedActivities = { ...prevActivities };
         
-        // Reset any existing task of day for this employee
+        // Update the is_task_of_day flag for this specific activity
         if (updatedActivities[employeeId]) {
-          updatedActivities[employeeId] = updatedActivities[employeeId].map(activity => ({
-            ...activity,
-            is_task_of_day: activity.id === activityId
-          }));
+          updatedActivities[employeeId] = updatedActivities[employeeId].map(activity => {
+            if (activity.id === activityId) {
+              // Toggle the is_task_of_day flag
+              return {
+                ...activity,
+                is_task_of_day: !activity.is_task_of_day
+              };
+            }
+            return activity;
+          });
         }
         
         return updatedActivities;
@@ -238,31 +305,25 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
 
       // For now, skip the database operations since the column doesn't exist
       // This will use our local state instead
-      console.log(`Successfully set activity ${activityId} as task of day for employee ${employeeId} (using local storage)`);
+      console.log(`Successfully updated task of day status for activity ${activityId} (using local storage)`);
       
       // Optional: Add a database operation attempt for when the column is added
       try {
-        // First, try to reset any existing task of day - commented out until column exists
-        /* 
-        const { error: resetError } = await supabase
-          .from('activities')
-          .update({ is_task_of_day: false })
-          .match({ employee_id: employeeId, is_task_of_day: true });
-        
-        if (resetError) {
-          console.error('Error resetting existing task of day:', resetError);
-          // Continue anyway to try setting the new task of day
-        }
-        
-        // Then set the new task of day
-        const { error: updateError } = await supabase
-          .from('activities')
-          .update({ is_task_of_day: true })
-          .match({ id: activityId });
-        
-        if (updateError) {
-          console.error('Error setting new task of day:', updateError);
-          throw updateError;
+        // Update the task of day status in the database
+        // For now this is commented out, but when the database schema is updated,
+        // we'll just directly toggle the is_task_of_day flag for this specific activity
+        /*
+        const activity = employeeActivities[employeeId]?.find(a => a.id === activityId);
+        if (activity) {
+          const { error: updateError } = await supabase
+            .from('activities')
+            .update({ is_task_of_day: !activity.is_task_of_day })
+            .match({ id: activityId });
+          
+          if (updateError) {
+            console.error('Error updating task of day:', updateError);
+            throw updateError;
+          }
         }
         */
       } catch (dbError) {
@@ -296,7 +357,8 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
       const activitiesByEmployee: {[key: string]: Activity[]} = {};
       
       data.forEach(activity => {
-        const isTaskOfDay = tasksOfDay[activity.employee_id] === activity.id;
+        const employeeTasks = tasksOfDay[activity.employee_id] || [];
+        const isTaskOfDay = employeeTasks.includes(activity.id);
         
         const formattedActivity = {
           ...activity,
@@ -366,7 +428,102 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
     if (activity.is_task_of_day) return '🔥';
     if (activity.status === 'completed') return '✅';
     if (activity.status === 'deferred') return '⏳';
+    if (activity.is_recurring) return '🔁';
     return '🔄';
+  };
+
+  // Format the due date
+  const formatDueDate = (date?: Date): string => {
+    if (!date) return '';
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    const taskDate = new Date(date);
+    taskDate.setHours(0, 0, 0, 0);
+    
+    // Check if the date is today
+    if (taskDate.getTime() === today.getTime()) {
+      return 'Today';
+    }
+    
+    // Check if the date is tomorrow
+    if (taskDate.getTime() === tomorrow.getTime()) {
+      return 'Tomorrow';
+    }
+    
+    // Otherwise return the formatted date
+    return taskDate.toLocaleDateString();
+  };
+
+  // Get a formatted string description of the recurrence pattern
+  const getRecurrenceDescription = (activity: Activity): string => {
+    if (!activity.is_recurring || !activity.recurrence_pattern) return '';
+    
+    const pattern = activity.recurrence_pattern;
+    
+    switch (pattern.type) {
+      case 'daily':
+        return pattern.interval === 1 
+          ? 'Every day' 
+          : `Every ${pattern.interval} days`;
+      
+      case 'weekly':
+        if (!pattern.daysOfWeek || pattern.daysOfWeek.length === 0) {
+          return pattern.interval === 1 
+            ? 'Every week' 
+            : `Every ${pattern.interval} weeks`;
+        } else {
+          const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+          const days = pattern.daysOfWeek.map(d => dayNames[d]).join(', ');
+          return pattern.interval === 1 
+            ? `Every week on ${days}` 
+            : `Every ${pattern.interval} weeks on ${days}`;
+        }
+      
+      case 'monthly':
+        const dayText = pattern.dayOfMonth ? `day ${pattern.dayOfMonth}` : 'same day';
+        return pattern.interval === 1 
+          ? `Every month on ${dayText}` 
+          : `Every ${pattern.interval} months on ${dayText}`;
+      
+      default:
+        return 'Recurring';
+    }
+  };
+
+  // Function to open the employee details modal
+  const openEmployeeModal = (employee: Employee) => {
+    const activities = employeeActivities[employee.id] || [];
+    setSelectedEmployee({
+      employee,
+      activities
+    });
+  };
+
+  // Function to group activities by their status
+  const groupActivitiesByStatus = (activities: Activity[]) => {
+    const result: Record<ActivityStatus, Activity[]> = {
+      'active': [],
+      'completed': [],
+      'deferred': []
+    };
+    
+    activities.forEach(activity => {
+      result[activity.status].push(activity);
+    });
+    
+    return result;
+  };
+
+  // Update the button text based on whether this is already a task of day
+  const getTaskOfDayButtonText = (activity: Activity) => {
+    return activity.is_task_of_day 
+      ? "Remove from Today's Tasks" 
+      : "Add to Today's Tasks";
   };
 
   if (loading) {
@@ -401,7 +558,13 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
               <div key={employee.id} className="employee-tasks-card">
                 <div className="employee-tasks-header">
                   <div className="employee-info">
-                    <h3 className="employee-name">{employee.name}</h3>
+                    <h3 
+                      className="employee-name"
+                      onClick={() => openEmployeeModal(employee)}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      {employee.name}
+                    </h3>
                     <span 
                       className="status-pill"
                       style={{ backgroundColor: getStatusColor(employee.status) }}
@@ -438,7 +601,7 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
                       {displayTasks.map(activity => (
                         <li 
                           key={activity.id} 
-                          className={`task-item ${activity.is_task_of_day ? 'task-of-day' : ''}`}
+                          className={`task-item ${activity.is_task_of_day ? 'task-of-day' : ''} ${activity.is_recurring ? 'recurring-task' : ''}`}
                         >
                           <div className="task-content">
                             <span className="task-icon">
@@ -448,18 +611,42 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
                             {activity.is_task_of_day && (
                               <span className="task-day-badge">TODAY</span>
                             )}
+                            {activity.is_recurring && (
+                              <span className="task-recurring-badge">RECURRING</span>
+                            )}
                           </div>
                           <div className="task-actions">
+                            {activity.due_date && (
+                              <span className={`task-due-date ${
+                                formatDueDate(activity.due_date) === 'Today' ? 'due-today' : 
+                                (new Date(activity.due_date) < new Date() ? 'overdue' : '')
+                              }`}>
+                                Due: {formatDueDate(activity.due_date)}
+                              </span>
+                            )}
                             <span className="task-date">
                               {activity.created_at.toLocaleDateString()}
                             </span>
                             {activity.status === 'active' && !activity.is_task_of_day && (
                               <button 
                                 className="set-today-button"
-                                onClick={() => setTaskOfDay(activity.id, employee.id)}
-                                title="Set as today's focus"
+                                onClick={() => {
+                                  setTaskOfDay(activity.id, employee.id);
+                                  // Update the modal with the new task of day
+                                  setSelectedEmployee(prev => {
+                                    if (!prev) return null;
+                                    const updatedActivities = prev.activities.map(a => ({
+                                      ...a,
+                                      is_task_of_day: a.id === activity.id ? true : a.is_task_of_day
+                                    }));
+                                    return {
+                                      ...prev,
+                                      activities: updatedActivities
+                                    };
+                                  });
+                                }}
                               >
-                                Make Today's Task
+                                {getTaskOfDayButtonText(activity)}
                               </button>
                             )}
                           </div>
@@ -471,6 +658,301 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
               </div>
             );
           })}
+        </div>
+      )}
+      
+      {/* Employee Task Details Modal */}
+      {selectedEmployee && (
+        <div className="modal-overlay">
+          <div className="employee-modal glass-effect" ref={modalRef}>
+            <div className="modal-header">
+              <h3>{selectedEmployee.employee.name}'s Tasks</h3>
+              <span 
+                className="status-pill"
+                style={{ backgroundColor: getStatusColor(selectedEmployee.employee.status) }}
+              >
+                {getStatusLabel(selectedEmployee.employee.status)}
+              </span>
+              <button 
+                className="close-modal-btn"
+                onClick={() => setSelectedEmployee(null)}
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className="modal-content">
+              {/* Today's Task Section */}
+              <div className="task-category-section">
+                <h4 className="task-category-title">
+                  <span className="category-icon">🔥</span> Today's Focus Tasks
+                </h4>
+                <div className="category-tasks">
+                  {selectedEmployee.activities.some(a => a.is_task_of_day) ? (
+                    <ul className="modal-tasks-list">
+                      {selectedEmployee.activities
+                        .filter(a => a.is_task_of_day)
+                        .map(activity => (
+                          <li key={activity.id} className={`modal-task-item task-of-day ${activity.is_recurring ? 'recurring-task' : ''}`}>
+                            <div className="modal-task-content">
+                              <span className="task-icon">🔥</span>
+                              <span className="task-description">{activity.description}</span>
+                              {activity.is_recurring && (
+                                <span className="task-recurring-badge">RECURRING</span>
+                              )}
+                            </div>
+                            <div className="task-meta">
+                              {activity.due_date && (
+                                <span className={`task-due-date ${
+                                  formatDueDate(activity.due_date) === 'Today' ? 'due-today' : 
+                                  (new Date(activity.due_date) < new Date() ? 'overdue' : '')
+                                }`}>
+                                  Due: {formatDueDate(activity.due_date)}
+                                </span>
+                              )}
+                              <span className="task-date">{activity.created_at.toLocaleDateString()}</span>
+                              <button 
+                                className="set-today-button remove-today-button"
+                                onClick={() => {
+                                  setTaskOfDay(activity.id, selectedEmployee.employee.id);
+                                  // Update the modal with the toggled task of day status
+                                  setSelectedEmployee(prev => {
+                                    if (!prev) return null;
+                                    const updatedActivities = prev.activities.map(a => ({
+                                      ...a,
+                                      is_task_of_day: false
+                                    }));
+                                    return {
+                                      ...prev,
+                                      activities: updatedActivities
+                                    };
+                                  });
+                                }}
+                              >
+                                Remove from Today's Tasks
+                              </button>
+                            </div>
+                          </li>
+                        ))}
+                    </ul>
+                  ) : (
+                    <div className="empty-category">No tasks set for today - Add tasks from below</div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Recurring Tasks Section */}
+              <div className="task-category-section">
+                <h4 className="task-category-title">
+                  <span className="category-icon">🔁</span> Recurring Tasks
+                </h4>
+                <div className="category-tasks">
+                  {selectedEmployee.activities.some(a => a.is_recurring && !a.is_task_of_day) ? (
+                    <ul className="modal-tasks-list">
+                      {selectedEmployee.activities
+                        .filter(a => a.is_recurring && !a.is_task_of_day)
+                        .map(activity => (
+                          <li key={activity.id} className="modal-task-item recurring-task">
+                            <div className="modal-task-content">
+                              <span className="task-icon">🔁</span>
+                              <span className="task-description">{activity.description}</span>
+                              <span className={`task-status-badge ${activity.status}`}>{activity.status}</span>
+                            </div>
+                            <div className="task-meta">
+                              <span className="task-recurrence">
+                                {getRecurrenceDescription(activity)}
+                              </span>
+                              {activity.due_date && (
+                                <span className={`task-due-date ${
+                                  formatDueDate(activity.due_date) === 'Today' ? 'due-today' : 
+                                  (new Date(activity.due_date) < new Date() ? 'overdue' : '')
+                                }`}>
+                                  Next due: {formatDueDate(activity.due_date)}
+                                </span>
+                              )}
+                              <span className="task-date">{activity.created_at.toLocaleDateString()}</span>
+                              {activity.status === 'active' && !activity.is_task_of_day && (
+                                <button 
+                                  className="set-today-button"
+                                  onClick={() => {
+                                    setTaskOfDay(activity.id, selectedEmployee.employee.id);
+                                    // Update the modal with the new task of day
+                                    setSelectedEmployee(prev => {
+                                      if (!prev) return null;
+                                      const updatedActivities = prev.activities.map(a => ({
+                                        ...a,
+                                        is_task_of_day: a.id === activity.id ? true : a.is_task_of_day
+                                      }));
+                                      return {
+                                        ...prev,
+                                        activities: updatedActivities
+                                      };
+                                    });
+                                  }}
+                                >
+                                  {getTaskOfDayButtonText(activity)}
+                                </button>
+                              )}
+                            </div>
+                          </li>
+                        ))}
+                    </ul>
+                  ) : (
+                    <div className="empty-category">No recurring tasks</div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Active Tasks Section */}
+              <div className="task-category-section">
+                <h4 className="task-category-title">
+                  <span className="category-icon">🔄</span> Active Tasks
+                </h4>
+                <div className="category-tasks">
+                  {selectedEmployee.activities.some(a => a.status === 'active' && !a.is_task_of_day && !a.is_recurring) ? (
+                    <ul className="modal-tasks-list">
+                      {selectedEmployee.activities
+                        .filter(a => a.status === 'active' && !a.is_task_of_day && !a.is_recurring)
+                        .map(activity => (
+                          <li key={activity.id} className="modal-task-item">
+                            <div className="modal-task-content">
+                              <span className="task-icon">🔄</span>
+                              <span className="task-description">{activity.description}</span>
+                            </div>
+                            <div className="task-meta">
+                              {activity.due_date && (
+                                <span className={`task-due-date ${
+                                  formatDueDate(activity.due_date) === 'Today' ? 'due-today' : 
+                                  (new Date(activity.due_date) < new Date() ? 'overdue' : '')
+                                }`}>
+                                  Due: {formatDueDate(activity.due_date)}
+                                </span>
+                              )}
+                              <span className="task-date">{activity.created_at.toLocaleDateString()}</span>
+                              <button 
+                                className="set-today-button"
+                                onClick={() => {
+                                  setTaskOfDay(activity.id, selectedEmployee.employee.id);
+                                  // Update the modal with the new task of day
+                                  setSelectedEmployee(prev => {
+                                    if (!prev) return null;
+                                    const updatedActivities = prev.activities.map(a => ({
+                                      ...a,
+                                      is_task_of_day: a.id === activity.id ? true : a.is_task_of_day
+                                    }));
+                                    return {
+                                      ...prev,
+                                      activities: updatedActivities
+                                    };
+                                  });
+                                }}
+                              >
+                                {getTaskOfDayButtonText(activity)}
+                              </button>
+                            </div>
+                          </li>
+                        ))}
+                    </ul>
+                  ) : (
+                    <div className="empty-category">No active tasks</div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Deferred Tasks Section */}
+              <div className="task-category-section">
+                <h4 className="task-category-title">
+                  <span className="category-icon">⏳</span> Deferred Tasks
+                </h4>
+                <div className="category-tasks">
+                  {selectedEmployee.activities.some(a => a.status === 'deferred') ? (
+                    <ul className="modal-tasks-list">
+                      {selectedEmployee.activities
+                        .filter(a => a.status === 'deferred')
+                        .map(activity => (
+                          <li key={activity.id} className={`modal-task-item ${activity.is_recurring ? 'recurring-task' : ''}`}>
+                            <div className="modal-task-content">
+                              <span className="task-icon">⏳</span>
+                              <span className="task-description">{activity.description}</span>
+                              {activity.is_recurring && (
+                                <span className="task-recurring-badge">RECURRING</span>
+                              )}
+                            </div>
+                            <div className="task-meta">
+                              {activity.is_recurring && (
+                                <span className="task-recurrence">
+                                  {getRecurrenceDescription(activity)}
+                                </span>
+                              )}
+                              {activity.due_date && (
+                                <span className={`task-due-date ${
+                                  formatDueDate(activity.due_date) === 'Today' ? 'due-today' : 
+                                  (new Date(activity.due_date) < new Date() ? 'overdue' : '')
+                                }`}>
+                                  Due: {formatDueDate(activity.due_date)}
+                                </span>
+                              )}
+                              <span className="task-date">{activity.created_at.toLocaleDateString()}</span>
+                            </div>
+                          </li>
+                        ))}
+                    </ul>
+                  ) : (
+                    <div className="empty-category">No deferred tasks</div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Completed Tasks Section */}
+              <div className="task-category-section">
+                <h4 className="task-category-title">
+                  <span className="category-icon">✅</span> Completed Tasks
+                </h4>
+                <div className="category-tasks">
+                  {selectedEmployee.activities.some(a => a.status === 'completed') ? (
+                    <ul className="modal-tasks-list">
+                      {selectedEmployee.activities
+                        .filter(a => a.status === 'completed')
+                        .map(activity => (
+                          <li key={activity.id} className={`modal-task-item ${activity.is_recurring ? 'recurring-task' : ''}`}>
+                            <div className="modal-task-content">
+                              <span className="task-icon">✅</span>
+                              <span className="task-description">{activity.description}</span>
+                              {activity.is_recurring && (
+                                <span className="task-recurring-badge">RECURRING</span>
+                              )}
+                            </div>
+                            <div className="task-meta">
+                              {activity.is_recurring && (
+                                <span className="task-recurrence">
+                                  {getRecurrenceDescription(activity)}
+                                </span>
+                              )}
+                              <span className="task-date">
+                                {activity.completed_at 
+                                  ? `Completed: ${activity.completed_at.toLocaleDateString()}`
+                                  : `Created: ${activity.created_at.toLocaleDateString()}`}
+                              </span>
+                            </div>
+                          </li>
+                        ))}
+                    </ul>
+                  ) : (
+                    <div className="empty-category">No completed tasks</div>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            <div className="modal-footer">
+              <button 
+                className="close-btn"
+                onClick={() => setSelectedEmployee(null)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

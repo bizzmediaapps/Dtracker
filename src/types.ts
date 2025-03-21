@@ -24,6 +24,18 @@ export interface StatusUpdate {
 
 export type ActivityStatus = 'active' | 'completed' | 'deferred';
 
+// Define recurrence types
+export type RecurrenceType = 'none' | 'daily' | 'weekly' | 'monthly' | 'custom';
+
+// Interface for recurrence details
+export interface RecurrencePattern {
+  type: RecurrenceType;
+  interval: number; // Every X days/weeks/months
+  daysOfWeek?: number[]; // 0-6 for Sunday-Saturday
+  dayOfMonth?: number; // 1-31
+  nextDueDate?: Date; // Next date when the task is due
+}
+
 export interface Activity {
   id: string;
   employee_id: string;
@@ -33,10 +45,19 @@ export interface Activity {
   created_at: Date;
   updated_at: Date;
   completed_at: Date | null;
+  // Recurring task properties
+  is_recurring: boolean;
+  recurrence_pattern?: RecurrencePattern;
+  due_date?: Date; // The current due date for the task
+  last_completed_date?: Date; // When the recurring task was last completed
 }
 
 export interface NewActivity {
   employee_id: string;
   description: string;
   status?: ActivityStatus;
+  // Recurring task properties
+  is_recurring?: boolean;
+  recurrence_pattern?: RecurrencePattern;
+  due_date?: string; // ISO string for the database
 } 
