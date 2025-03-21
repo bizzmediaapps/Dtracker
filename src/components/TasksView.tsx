@@ -634,31 +634,69 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
                             {activity.status === 'active' && !activity.is_task_of_day && (
                               <button 
                                 className="set-today-button"
-                                onClick={() => {
-                                  // First, capture necessary IDs before modifying any state
+                                onClick={(e) => {
+                                  // Prevent event propagation to avoid bubbling
+                                  e.stopPropagation();
+                                  
+                                  // First, capture necessary IDs 
                                   const activityId = activity.id;
                                   const employeeId = employee.id;
                                   
-                                  // Create a copy of the current activity with is_task_of_day set to true
-                                  const updatedActivity = {...activity, is_task_of_day: true};
-                                  
-                                  // First update the UI by modifying the activity in the current view
-                                  setSelectedEmployee(prev => {
-                                    if (!prev) return null;
-                                    const updatedActivities = prev.activities.map(a => 
-                                      a.id === activityId ? updatedActivity : a
-                                    );
-                                    return {
-                                      ...prev,
-                                      activities: updatedActivities
-                                    };
+                                  // Update the local state for tasks of day
+                                  setTasksOfDay(prev => {
+                                    // Make sure we have a valid previous state and array
+                                    const currentTasks = prev[employeeId] || [];
+                                    // Check if task is already there to avoid duplicates
+                                    if (!currentTasks.includes(activityId)) {
+                                      const newEmployeeTasks = [...currentTasks, activityId];
+                                      
+                                      // Create a new object to avoid mutation
+                                      const newTasksOfDay = { ...prev, [employeeId]: newEmployeeTasks };
+                                      
+                                      // Save to localStorage immediately
+                                      try {
+                                        localStorage.setItem('tasksOfDay', JSON.stringify(newTasksOfDay));
+                                      } catch (e) {
+                                        console.error('Error saving tasks of day to localStorage:', e);
+                                      }
+                                      
+                                      return newTasksOfDay;
+                                    }
+                                    return prev;
                                   });
                                   
-                                  // Then call setTaskOfDay with the captured IDs to update localStorage
-                                  // Use setTimeout to slightly delay this operation to prevent race conditions
-                                  setTimeout(() => {
-                                    setTaskOfDay(activityId, employeeId);
-                                  }, 10);
+                                  // Now update the UI state to show changes immediately
+                                  setEmployeeActivities(prevActivities => {
+                                    if (!prevActivities || !prevActivities[employeeId]) return prevActivities;
+                                    
+                                    const updatedActivities = {
+                                      ...prevActivities,
+                                      [employeeId]: prevActivities[employeeId].map(act => 
+                                        act.id === activityId ? { ...act, is_task_of_day: true } : act
+                                      )
+                                    };
+                                    
+                                    return updatedActivities;
+                                  });
+                                  
+                                  // Finally update the selected employee UI
+                                  if (selectedEmployee && selectedEmployee.activities) {
+                                    setSelectedEmployee(prev => {
+                                      if (!prev) return null;
+                                      
+                                      // Create a defensive copy of the activities array
+                                      const updatedActivities = Array.isArray(prev.activities) 
+                                        ? prev.activities.map(a => 
+                                            a.id === activityId ? { ...a, is_task_of_day: true } : a
+                                          )
+                                        : [];
+                                      
+                                      return {
+                                        ...prev,
+                                        activities: updatedActivities
+                                      };
+                                    });
+                                  }
                                 }}
                               >
                                 {getTaskOfDayButtonText(activity)}
@@ -728,31 +766,65 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
                               <span className="task-date">{activity.created_at.toLocaleDateString()}</span>
                               <button 
                                 className="set-today-button remove-today-button"
-                                onClick={() => {
-                                  // First, capture necessary IDs before modifying any state
+                                onClick={(e) => {
+                                  // Prevent event propagation to avoid bubbling
+                                  e.stopPropagation();
+                                  
+                                  // First, capture necessary IDs 
                                   const activityId = activity.id;
                                   const employeeId = selectedEmployee.employee.id;
                                   
-                                  // Create a copy of the current activity with is_task_of_day set to false
-                                  const updatedActivity = {...activity, is_task_of_day: false};
-                                  
-                                  // First update the UI by modifying the activity in the current view
-                                  setSelectedEmployee(prev => {
-                                    if (!prev) return null;
-                                    const updatedActivities = prev.activities.map(a => 
-                                      a.id === activityId ? updatedActivity : a
-                                    );
-                                    return {
-                                      ...prev,
-                                      activities: updatedActivities
-                                    };
+                                  // Update the local state for tasks of day
+                                  setTasksOfDay(prev => {
+                                    // Make sure we have a valid previous state and array
+                                    const currentTasks = prev[employeeId] || [];
+                                    const newEmployeeTasks = currentTasks.filter(id => id !== activityId);
+                                    
+                                    // Create a new object to avoid mutation
+                                    const newTasksOfDay = { ...prev, [employeeId]: newEmployeeTasks };
+                                    
+                                    // Save to localStorage immediately
+                                    try {
+                                      localStorage.setItem('tasksOfDay', JSON.stringify(newTasksOfDay));
+                                    } catch (e) {
+                                      console.error('Error saving tasks of day to localStorage:', e);
+                                    }
+                                    
+                                    return newTasksOfDay;
                                   });
                                   
-                                  // Then call setTaskOfDay with the captured IDs to update localStorage
-                                  // Use setTimeout to slightly delay this operation to prevent race conditions
-                                  setTimeout(() => {
-                                    setTaskOfDay(activityId, employeeId);
-                                  }, 10);
+                                  // Now update the UI state to show changes immediately
+                                  setEmployeeActivities(prevActivities => {
+                                    if (!prevActivities || !prevActivities[employeeId]) return prevActivities;
+                                    
+                                    const updatedActivities = {
+                                      ...prevActivities,
+                                      [employeeId]: prevActivities[employeeId].map(act => 
+                                        act.id === activityId ? { ...act, is_task_of_day: false } : act
+                                      )
+                                    };
+                                    
+                                    return updatedActivities;
+                                  });
+                                  
+                                  // Finally update the selected employee UI
+                                  if (selectedEmployee && selectedEmployee.activities) {
+                                    setSelectedEmployee(prev => {
+                                      if (!prev) return null;
+                                      
+                                      // Create a defensive copy of the activities array
+                                      const updatedActivities = Array.isArray(prev.activities) 
+                                        ? prev.activities.map(a => 
+                                            a.id === activityId ? { ...a, is_task_of_day: false } : a
+                                          )
+                                        : [];
+                                      
+                                      return {
+                                        ...prev,
+                                        activities: updatedActivities
+                                      };
+                                    });
+                                  }
                                 }}
                               >
                                 Remove from Today's Tasks
@@ -800,31 +872,69 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
                               {activity.status === 'active' && !activity.is_task_of_day && (
                                 <button 
                                   className="set-today-button"
-                                  onClick={() => {
-                                    // First, capture necessary IDs before modifying any state
+                                  onClick={(e) => {
+                                    // Prevent event propagation to avoid bubbling
+                                    e.stopPropagation();
+                                    
+                                    // First, capture necessary IDs 
                                     const activityId = activity.id;
                                     const employeeId = selectedEmployee.employee.id;
                                     
-                                    // Create a copy of the current activity with is_task_of_day set to true
-                                    const updatedActivity = {...activity, is_task_of_day: true};
-                                    
-                                    // First update the UI by modifying the activity in the current view
-                                    setSelectedEmployee(prev => {
-                                      if (!prev) return null;
-                                      const updatedActivities = prev.activities.map(a => 
-                                        a.id === activityId ? updatedActivity : a
-                                      );
-                                      return {
-                                        ...prev,
-                                        activities: updatedActivities
-                                      };
+                                    // Update the local state for tasks of day
+                                    setTasksOfDay(prev => {
+                                      // Make sure we have a valid previous state and array
+                                      const currentTasks = prev[employeeId] || [];
+                                      // Check if task is already there to avoid duplicates
+                                      if (!currentTasks.includes(activityId)) {
+                                        const newEmployeeTasks = [...currentTasks, activityId];
+                                        
+                                        // Create a new object to avoid mutation
+                                        const newTasksOfDay = { ...prev, [employeeId]: newEmployeeTasks };
+                                        
+                                        // Save to localStorage immediately
+                                        try {
+                                          localStorage.setItem('tasksOfDay', JSON.stringify(newTasksOfDay));
+                                        } catch (e) {
+                                          console.error('Error saving tasks of day to localStorage:', e);
+                                        }
+                                        
+                                        return newTasksOfDay;
+                                      }
+                                      return prev;
                                     });
                                     
-                                    // Then call setTaskOfDay with the captured IDs to update localStorage
-                                    // Use setTimeout to slightly delay this operation to prevent race conditions
-                                    setTimeout(() => {
-                                      setTaskOfDay(activityId, employeeId);
-                                    }, 10);
+                                    // Now update the UI state to show changes immediately
+                                    setEmployeeActivities(prevActivities => {
+                                      if (!prevActivities || !prevActivities[employeeId]) return prevActivities;
+                                      
+                                      const updatedActivities = {
+                                        ...prevActivities,
+                                        [employeeId]: prevActivities[employeeId].map(act => 
+                                          act.id === activityId ? { ...act, is_task_of_day: true } : act
+                                        )
+                                      };
+                                      
+                                      return updatedActivities;
+                                    });
+                                    
+                                    // Finally update the selected employee UI
+                                    if (selectedEmployee && selectedEmployee.activities) {
+                                      setSelectedEmployee(prev => {
+                                        if (!prev) return null;
+                                        
+                                        // Create a defensive copy of the activities array
+                                        const updatedActivities = Array.isArray(prev.activities) 
+                                          ? prev.activities.map(a => 
+                                              a.id === activityId ? { ...a, is_task_of_day: true } : a
+                                            )
+                                          : [];
+                                        
+                                        return {
+                                          ...prev,
+                                          activities: updatedActivities
+                                        };
+                                      });
+                                    }
                                   }}
                                 >
                                   {getTaskOfDayButtonText(activity)}
@@ -869,31 +979,69 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
                               {activity.status === 'active' && !activity.is_task_of_day && (
                                 <button 
                                   className="set-today-button"
-                                  onClick={() => {
-                                    // First, capture necessary IDs before modifying any state
+                                  onClick={(e) => {
+                                    // Prevent event propagation to avoid bubbling
+                                    e.stopPropagation();
+                                    
+                                    // First, capture necessary IDs 
                                     const activityId = activity.id;
                                     const employeeId = selectedEmployee.employee.id;
                                     
-                                    // Create a copy of the current activity with is_task_of_day set to true
-                                    const updatedActivity = {...activity, is_task_of_day: true};
-                                    
-                                    // First update the UI by modifying the activity in the current view
-                                    setSelectedEmployee(prev => {
-                                      if (!prev) return null;
-                                      const updatedActivities = prev.activities.map(a => 
-                                        a.id === activityId ? updatedActivity : a
-                                      );
-                                      return {
-                                        ...prev,
-                                        activities: updatedActivities
-                                      };
+                                    // Update the local state for tasks of day
+                                    setTasksOfDay(prev => {
+                                      // Make sure we have a valid previous state and array
+                                      const currentTasks = prev[employeeId] || [];
+                                      // Check if task is already there to avoid duplicates
+                                      if (!currentTasks.includes(activityId)) {
+                                        const newEmployeeTasks = [...currentTasks, activityId];
+                                        
+                                        // Create a new object to avoid mutation
+                                        const newTasksOfDay = { ...prev, [employeeId]: newEmployeeTasks };
+                                        
+                                        // Save to localStorage immediately
+                                        try {
+                                          localStorage.setItem('tasksOfDay', JSON.stringify(newTasksOfDay));
+                                        } catch (e) {
+                                          console.error('Error saving tasks of day to localStorage:', e);
+                                        }
+                                        
+                                        return newTasksOfDay;
+                                      }
+                                      return prev;
                                     });
                                     
-                                    // Then call setTaskOfDay with the captured IDs to update localStorage
-                                    // Use setTimeout to slightly delay this operation to prevent race conditions
-                                    setTimeout(() => {
-                                      setTaskOfDay(activityId, employeeId);
-                                    }, 10);
+                                    // Now update the UI state to show changes immediately
+                                    setEmployeeActivities(prevActivities => {
+                                      if (!prevActivities || !prevActivities[employeeId]) return prevActivities;
+                                      
+                                      const updatedActivities = {
+                                        ...prevActivities,
+                                        [employeeId]: prevActivities[employeeId].map(act => 
+                                          act.id === activityId ? { ...act, is_task_of_day: true } : act
+                                        )
+                                      };
+                                      
+                                      return updatedActivities;
+                                    });
+                                    
+                                    // Finally update the selected employee UI
+                                    if (selectedEmployee && selectedEmployee.activities) {
+                                      setSelectedEmployee(prev => {
+                                        if (!prev) return null;
+                                        
+                                        // Create a defensive copy of the activities array
+                                        const updatedActivities = Array.isArray(prev.activities) 
+                                          ? prev.activities.map(a => 
+                                              a.id === activityId ? { ...a, is_task_of_day: true } : a
+                                            )
+                                          : [];
+                                        
+                                        return {
+                                          ...prev,
+                                          activities: updatedActivities
+                                        };
+                                      });
+                                    }
                                   }}
                                 >
                                   {getTaskOfDayButtonText(activity)}
