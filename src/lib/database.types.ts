@@ -41,6 +41,7 @@ export interface Database {
           created_at: string
           updated_at: string
           completed_at: string | null
+          is_task_of_day?: boolean
         }
         Insert: {
           id?: string
@@ -50,6 +51,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
           completed_at?: string | null
+          is_task_of_day?: boolean
         }
         Update: {
           id?: string
@@ -59,6 +61,48 @@ export interface Database {
           created_at?: string
           updated_at?: string
           completed_at?: string | null
+          is_task_of_day?: boolean
+        }
+      },
+      calendar_events: {
+        Row: {
+          id: string
+          title: string
+          date: string
+          event_type: 'holiday' | 'event' | 'reminder'
+          employee_id?: string
+          is_holiday: boolean
+          is_trinidad_holiday: boolean
+          year?: number
+          color?: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          date: string
+          event_type: 'holiday' | 'event' | 'reminder'
+          employee_id?: string
+          is_holiday?: boolean
+          is_trinidad_holiday?: boolean
+          year?: number
+          color?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          date?: string
+          event_type?: 'holiday' | 'event' | 'reminder'
+          employee_id?: string
+          is_holiday?: boolean
+          is_trinidad_holiday?: boolean
+          year?: number
+          color?: string
+          created_at?: string
+          updated_at?: string
         }
       }
     }

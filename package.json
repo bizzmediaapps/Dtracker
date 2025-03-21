@@ -15,8 +15,10 @@
     "@mantine/hooks": "^7.5.1",
     "@supabase/supabase-js": "^2.48.1",
     "@tabler/icons-react": "^2.47.0",
+    "@types/uuid": "^10.0.0",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.55",

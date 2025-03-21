@@ -1385,4 +1385,34 @@ input[type="time"]::-webkit-calendar-picker-indicator {
     overflow-y: auto;
     padding: 0.75rem;
   }
+}
+
+/* Loading spinner for calendar */
+.loading-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+  font-size: 1.2rem;
+  color: var(--text-secondary);
+  position: relative;
+  padding: 2rem;
+}
+
+.loading-spinner::after {
+  content: '';
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--accent-primary);
+  animation: spinner 1s infinite linear;
+  margin-top: 60px;
+}
+
+@keyframes spinner {
+  to {
+    transform: rotate(360deg);
+  }
 } 
