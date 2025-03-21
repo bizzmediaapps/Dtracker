@@ -635,15 +635,18 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
                               <button 
                                 className="set-today-button"
                                 onClick={() => {
+                                  // First, capture necessary IDs before modifying any state
+                                  const activityId = activity.id;
+                                  const employeeId = employee.id;
+                                  
                                   // Create a copy of the current activity with is_task_of_day set to true
                                   const updatedActivity = {...activity, is_task_of_day: true};
                                   
-                                  // First update the selected employee state with the modified activity
-                                  // to ensure UI is consistent
+                                  // First update the UI by modifying the activity in the current view
                                   setSelectedEmployee(prev => {
                                     if (!prev) return null;
                                     const updatedActivities = prev.activities.map(a => 
-                                      a.id === activity.id ? updatedActivity : a
+                                      a.id === activityId ? updatedActivity : a
                                     );
                                     return {
                                       ...prev,
@@ -651,8 +654,11 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
                                     };
                                   });
                                   
-                                  // Then call setTaskOfDay to update the localStorage and backend
-                                  setTaskOfDay(activity.id, employee.id);
+                                  // Then call setTaskOfDay with the captured IDs to update localStorage
+                                  // Use setTimeout to slightly delay this operation to prevent race conditions
+                                  setTimeout(() => {
+                                    setTaskOfDay(activityId, employeeId);
+                                  }, 10);
                                 }}
                               >
                                 {getTaskOfDayButtonText(activity)}
@@ -723,15 +729,18 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
                               <button 
                                 className="set-today-button remove-today-button"
                                 onClick={() => {
+                                  // First, capture necessary IDs before modifying any state
+                                  const activityId = activity.id;
+                                  const employeeId = selectedEmployee.employee.id;
+                                  
                                   // Create a copy of the current activity with is_task_of_day set to false
                                   const updatedActivity = {...activity, is_task_of_day: false};
                                   
-                                  // First update the selected employee state with the modified activity
-                                  // to ensure UI is consistent
+                                  // First update the UI by modifying the activity in the current view
                                   setSelectedEmployee(prev => {
                                     if (!prev) return null;
                                     const updatedActivities = prev.activities.map(a => 
-                                      a.id === activity.id ? updatedActivity : a
+                                      a.id === activityId ? updatedActivity : a
                                     );
                                     return {
                                       ...prev,
@@ -739,8 +748,11 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
                                     };
                                   });
                                   
-                                  // Then call setTaskOfDay to update the localStorage and backend
-                                  setTaskOfDay(activity.id, selectedEmployee.employee.id);
+                                  // Then call setTaskOfDay with the captured IDs to update localStorage
+                                  // Use setTimeout to slightly delay this operation to prevent race conditions
+                                  setTimeout(() => {
+                                    setTaskOfDay(activityId, employeeId);
+                                  }, 10);
                                 }}
                               >
                                 Remove from Today's Tasks
@@ -789,15 +801,18 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
                                 <button 
                                   className="set-today-button"
                                   onClick={() => {
+                                    // First, capture necessary IDs before modifying any state
+                                    const activityId = activity.id;
+                                    const employeeId = selectedEmployee.employee.id;
+                                    
                                     // Create a copy of the current activity with is_task_of_day set to true
                                     const updatedActivity = {...activity, is_task_of_day: true};
                                     
-                                    // First update the selected employee state with the modified activity
-                                    // to ensure UI is consistent
+                                    // First update the UI by modifying the activity in the current view
                                     setSelectedEmployee(prev => {
                                       if (!prev) return null;
                                       const updatedActivities = prev.activities.map(a => 
-                                        a.id === activity.id ? updatedActivity : a
+                                        a.id === activityId ? updatedActivity : a
                                       );
                                       return {
                                         ...prev,
@@ -805,8 +820,11 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
                                       };
                                     });
                                     
-                                    // Then call setTaskOfDay to update the localStorage and backend
-                                    setTaskOfDay(activity.id, selectedEmployee.employee.id);
+                                    // Then call setTaskOfDay with the captured IDs to update localStorage
+                                    // Use setTimeout to slightly delay this operation to prevent race conditions
+                                    setTimeout(() => {
+                                      setTaskOfDay(activityId, employeeId);
+                                    }, 10);
                                   }}
                                 >
                                   {getTaskOfDayButtonText(activity)}
@@ -848,31 +866,39 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
                                 </span>
                               )}
                               <span className="task-date">{activity.created_at.toLocaleDateString()}</span>
-                              <button 
-                                className="set-today-button"
-                                onClick={() => {
-                                  // Create a copy of the current activity with is_task_of_day set to true
-                                  const updatedActivity = {...activity, is_task_of_day: true};
-                                  
-                                  // First update the selected employee state with the modified activity
-                                  // to ensure UI is consistent
-                                  setSelectedEmployee(prev => {
-                                    if (!prev) return null;
-                                    const updatedActivities = prev.activities.map(a => 
-                                      a.id === activity.id ? updatedActivity : a
-                                    );
-                                    return {
-                                      ...prev,
-                                      activities: updatedActivities
-                                    };
-                                  });
-                                  
-                                  // Then call setTaskOfDay to update the localStorage and backend
-                                  setTaskOfDay(activity.id, selectedEmployee.employee.id);
-                                }}
-                              >
-                                {getTaskOfDayButtonText(activity)}
-                              </button>
+                              {activity.status === 'active' && !activity.is_task_of_day && (
+                                <button 
+                                  className="set-today-button"
+                                  onClick={() => {
+                                    // First, capture necessary IDs before modifying any state
+                                    const activityId = activity.id;
+                                    const employeeId = selectedEmployee.employee.id;
+                                    
+                                    // Create a copy of the current activity with is_task_of_day set to true
+                                    const updatedActivity = {...activity, is_task_of_day: true};
+                                    
+                                    // First update the UI by modifying the activity in the current view
+                                    setSelectedEmployee(prev => {
+                                      if (!prev) return null;
+                                      const updatedActivities = prev.activities.map(a => 
+                                        a.id === activityId ? updatedActivity : a
+                                      );
+                                      return {
+                                        ...prev,
+                                        activities: updatedActivities
+                                      };
+                                    });
+                                    
+                                    // Then call setTaskOfDay with the captured IDs to update localStorage
+                                    // Use setTimeout to slightly delay this operation to prevent race conditions
+                                    setTimeout(() => {
+                                      setTaskOfDay(activityId, employeeId);
+                                    }, 10);
+                                  }}
+                                >
+                                  {getTaskOfDayButtonText(activity)}
+                                </button>
+                              )}
                             </div>
                           </li>
                         ))}
