@@ -13,6 +13,8 @@ const ActivitiesList: React.FC<ActivitiesListProps> = ({ employeeId }) => {
   const [showForm, setShowForm] = useState(false);
   const [activeTab, setActiveTab] = useState<'list' | 'table'>('list');
   const [activeFilter, setActiveFilter] = useState<ActivityStatus | 'all'>('all');
+  const [savingRecurrence, setSavingRecurrence] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
   
   // Recurring task form state
   const [isRecurring, setIsRecurring] = useState(false);
@@ -60,7 +62,7 @@ const ActivitiesList: React.FC<ActivitiesListProps> = ({ employeeId }) => {
         throw error;
       }
 
-      // Convert string dates to Date objects and update recurring tasks if needed
+      // Convert string dates to Date objects and add recurrence info from localStorage
       const formattedActivities = data.map(activity => {
         const formattedActivity = {
           ...activity,
@@ -70,6 +72,23 @@ const ActivitiesList: React.FC<ActivitiesListProps> = ({ employeeId }) => {
           due_date: activity.due_date ? new Date(activity.due_date) : undefined,
           last_completed_date: activity.last_completed_date ? new Date(activity.last_completed_date) : undefined
         };
+        
+        // Always try to load recurrence pattern from localStorage
+        const localStorageKey = `recurrence_pattern_${activity.id}`;
+        const storedPattern = localStorage.getItem(localStorageKey);
+        
+        if (storedPattern) {
+          try {
+            formattedActivity.recurrence_pattern = JSON.parse(storedPattern);
+            // If the pattern includes a due date, and the task doesn't have one, use it
+            if (formattedActivity.recurrence_pattern.nextDueDate && !formattedActivity.due_date) {
+              formattedActivity.due_date = new Date(formattedActivity.recurrence_pattern.nextDueDate);
+            }
+            console.info("Loaded recurrence pattern from localStorage:", localStorageKey);
+          } catch (parseError) {
+            console.error("Error parsing stored recurrence pattern:", parseError);
+          }
+        }
         
         return formattedActivity;
       });
@@ -95,33 +114,38 @@ const ActivitiesList: React.FC<ActivitiesListProps> = ({ employeeId }) => {
 
     // Find tasks that need their due date updated
     activityList.forEach(activity => {
-      if (activity.is_recurring && activity.recurrence_pattern && activity.status !== 'completed') {
-        // If the task has a due_date and it's in the past or today, or it has been completed
-        if (activity.due_date && (activity.due_date <= today || activity.last_completed_date)) {
+      if (isActivityRecurring(activity) && activity.recurrence_pattern && activity.status !== 'completed') {
+        // Check due date from either property or recurrence pattern
+        const dueDate = getActivityDueDate(activity);
+        
+        // If the task has a due date and it's in the past or today, or it has been completed
+        if (dueDate && (dueDate <= today || activity.last_completed_date)) {
           // Calculate the next due date based on the recurrence pattern
           const nextDueDate = calculateNextDueDate(activity);
           if (nextDueDate) {
+            // Create updated recurrence pattern with new due date
+            const updatedRecurrencePattern = {
+              ...activity.recurrence_pattern,
+              nextDueDate: nextDueDate
+            };
+            
             tasksToUpdate.push({
               ...activity,
-              due_date: nextDueDate
+              recurrence_pattern: updatedRecurrencePattern
             });
           }
         }
       }
     });
 
-    // Update tasks in the database if needed
+    // Update tasks using localStorage
     if (tasksToUpdate.length > 0) {
       for (const task of tasksToUpdate) {
         try {
-          const { error } = await supabase
-            .from('activities')
-            .update({
-              due_date: task.due_date?.toISOString()
-            })
-            .eq('id', task.id);
-
-          if (error) throw error;
+          // Store the updated recurrence pattern in localStorage
+          const localStorageKey = `recurrence_pattern_${task.id}`;
+          localStorage.setItem(localStorageKey, JSON.stringify(task.recurrence_pattern));
+          console.info("Updated recurrence pattern in localStorage:", localStorageKey);
         } catch (err) {
           console.error('Error updating recurring task:', err);
         }
@@ -134,7 +158,9 @@ const ActivitiesList: React.FC<ActivitiesListProps> = ({ employeeId }) => {
 
   // Calculate the next due date based on recurrence pattern
   const calculateNextDueDate = (activity: Activity): Date | null => {
-    if (!activity.recurrence_pattern || !activity.due_date) return null;
+    // Check both possible sources of due date
+    const dueDate = activity.recurrence_pattern?.nextDueDate || activity.due_date;
+    if (!activity.recurrence_pattern || !dueDate) return null;
 
     const pattern = activity.recurrence_pattern;
     let baseDate = new Date();
@@ -144,7 +170,7 @@ const ActivitiesList: React.FC<ActivitiesListProps> = ({ employeeId }) => {
       baseDate = new Date(activity.last_completed_date);
     } else {
       // Otherwise use the existing due date
-      baseDate = new Date(activity.due_date);
+      baseDate = new Date(dueDate);
     }
 
     let nextDate = new Date(baseDate);
@@ -211,20 +237,28 @@ const ActivitiesList: React.FC<ActivitiesListProps> = ({ employeeId }) => {
       const activityData: any = {
         employee_id: employeeId,
         description: newActivity,
-        status: 'active',
-        is_recurring: isRecurring
+        status: 'active'
       };
 
-      // Add due date if provided
-      if (dueDate) {
-        activityData.due_date = new Date(dueDate).toISOString();
+      // Add the activity to the database (without recurrence info)
+      const { data, error } = await supabase
+        .from('activities')
+        .insert(activityData)
+        .select();
+
+      if (error) {
+        console.error('Error adding activity:', error);
+        alert(`Failed to add activity: ${error.message}`);
+        throw error;
       }
 
-      // Add recurrence pattern if this is a recurring task
-      if (isRecurring && recurrenceType !== 'none') {
+      // If this is a recurring task, store the pattern in localStorage
+      if (isRecurring && recurrenceType !== 'none' && data && data.length > 0) {
+        const activityId = data[0].id;
         const recurrencePattern: RecurrencePattern = {
           type: recurrenceType,
-          interval: recurrenceInterval
+          interval: recurrenceInterval,
+          isRecurring: true
         };
 
         // Add specific recurrence details based on type
@@ -234,25 +268,33 @@ const ActivitiesList: React.FC<ActivitiesListProps> = ({ employeeId }) => {
           recurrencePattern.dayOfMonth = dayOfMonth;
         }
 
-        activityData.recurrence_pattern = recurrencePattern;
+        // Store due date in recurrence pattern
+        if (dueDate) {
+          recurrencePattern.nextDueDate = new Date(dueDate);
+        }
+
+        // Save to localStorage
+        const localStorageKey = `recurrence_pattern_${activityId}`;
+        localStorage.setItem(localStorageKey, JSON.stringify(recurrencePattern));
+        console.info("Saved recurrence pattern to localStorage:", localStorageKey);
       }
-
-      const { error } = await supabase
-        .from('activities')
-        .insert(activityData);
-
-      if (error) throw error;
 
       // Reset form state
       setNewActivity('');
       setIsRecurring(false);
       setRecurrenceType('none');
       setRecurrenceInterval(1);
-      setDueDate('');
       setSelectedDays([]);
       setDayOfMonth(1);
+      
+      // Set new due date to today
+      const today = new Date();
+      setDueDate(today.toISOString().split('T')[0]);
+
+      // Close the form
       setShowForm(false);
       
+      // Refresh activities list
       await fetchActivities();
     } catch (error) {
       console.error('Error adding activity:', error);
@@ -325,9 +367,38 @@ const ActivitiesList: React.FC<ActivitiesListProps> = ({ employeeId }) => {
     }
   };
 
+  // Helper function to consistently get the due date from an activity
+  const getActivityDueDate = (activity: Activity): Date | undefined => {
+    if (activity.due_date) {
+      return new Date(activity.due_date);
+    } else if (activity.recurrence_pattern?.nextDueDate) {
+      return new Date(activity.recurrence_pattern.nextDueDate);
+    }
+    return undefined;
+  };
+
+  // Helper function to check if activity is recurring
+  const isActivityRecurring = (activity: Activity): boolean => {
+    // Check localStorage first
+    const localStorageKey = `recurrence_pattern_${activity.id}`;
+    const storedPattern = localStorage.getItem(localStorageKey);
+    
+    if (storedPattern) {
+      try {
+        const pattern = JSON.parse(storedPattern);
+        return !!pattern.isRecurring;
+      } catch (e) {
+        console.error('Error parsing stored recurrence pattern:', e);
+      }
+    }
+    
+    // If no localStorage data, check properties if they exist
+    return activity.is_recurring || !!activity.recurrence_pattern?.isRecurring;
+  };
+
   // Get a formatted string description of the recurrence pattern
   const getRecurrenceDescription = (activity: Activity): string => {
-    if (!activity.is_recurring || !activity.recurrence_pattern) return '';
+    if (!isActivityRecurring(activity) || !activity.recurrence_pattern) return '';
     
     const pattern = activity.recurrence_pattern;
     
@@ -362,8 +433,11 @@ const ActivitiesList: React.FC<ActivitiesListProps> = ({ employeeId }) => {
   };
 
   // Format the due date
-  const formatDueDate = (date?: Date): string => {
-    if (!date) return '';
+  const formatDueDate = (activity?: Activity): string => {
+    if (!activity) return '';
+    
+    const dueDate = getActivityDueDate(activity);
+    if (!dueDate) return '';
     
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -371,7 +445,7 @@ const ActivitiesList: React.FC<ActivitiesListProps> = ({ employeeId }) => {
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
     
-    const taskDate = new Date(date);
+    const taskDate = new Date(dueDate);
     taskDate.setHours(0, 0, 0, 0);
     
     // Check if the date is today
@@ -432,47 +506,79 @@ const ActivitiesList: React.FC<ActivitiesListProps> = ({ employeeId }) => {
   const saveRecurrenceSettings = async () => {
     if (!editingActivity) return;
 
-    try {
-      const updates: any = {
-        is_recurring: editRecurrenceType !== 'none',
-      };
+    // Validate required fields before saving
+    if (editRecurrenceType !== 'none') {
+      // Validate interval
+      if (editRecurrenceInterval < 1) {
+        alert('Please enter a valid interval (minimum 1)');
+        return;
+      }
       
-      // Add due date if provided
+      // Validate that at least one day is selected for weekly recurrence
+      if (editRecurrenceType === 'weekly' && editSelectedDays.length === 0) {
+        alert('Please select at least one day of the week for weekly recurrence');
+        return;
+      }
+      
+      // Validate day of month for monthly recurrence
+      if (editRecurrenceType === 'monthly' && (editDayOfMonth < 1 || editDayOfMonth > 31)) {
+        alert('Please enter a valid day of month (1-31)');
+        return;
+      }
+      
+      // Validate due date is provided
+      if (!editDueDate) {
+        alert('Please select a due date for the recurring task');
+        return;
+      }
+    }
+
+    try {
+      setSavingRecurrence(true);
+      
+      // Create recurrence pattern object
+      const recurrencePattern: RecurrencePattern = {
+        type: editRecurrenceType,
+        interval: editRecurrenceInterval,
+        isRecurring: editRecurrenceType !== 'none'
+      };
+
+      // Add specific recurrence details based on type
+      if (editRecurrenceType === 'weekly' && editSelectedDays.length > 0) {
+        recurrencePattern.daysOfWeek = editSelectedDays;
+      } else if (editRecurrenceType === 'monthly' && editDayOfMonth) {
+        recurrencePattern.dayOfMonth = editDayOfMonth;
+      }
+
+      // Store the due date inside the recurrence_pattern object
       if (editDueDate) {
-        updates.due_date = new Date(editDueDate).toISOString();
+        // Convert to a Date object for better handling
+        const dueDateObj = new Date(editDueDate);
+        recurrencePattern.nextDueDate = dueDateObj;
       }
 
-      // Add recurrence pattern if this is a recurring task
-      if (editRecurrenceType !== 'none') {
-        const recurrencePattern: RecurrencePattern = {
-          type: editRecurrenceType,
-          interval: editRecurrenceInterval
-        };
+      // Since neither column exists, always store in localStorage
+      const localStorageKey = `recurrence_pattern_${editingActivity.id}`;
+      localStorage.setItem(localStorageKey, JSON.stringify(recurrencePattern));
+      console.info("Saved recurrence pattern to localStorage:", localStorageKey);
 
-        // Add specific recurrence details based on type
-        if (editRecurrenceType === 'weekly' && editSelectedDays.length > 0) {
-          recurrencePattern.daysOfWeek = editSelectedDays;
-        } else if (editRecurrenceType === 'monthly' && editDayOfMonth) {
-          recurrencePattern.dayOfMonth = editDayOfMonth;
-        }
-
-        updates.recurrence_pattern = recurrencePattern;
-      }
-
-      const { error } = await supabase
-        .from('activities')
-        .update(updates)
-        .eq('id', editingActivity.id);
-
-      if (error) throw error;
+      // Show success message
+      setSaveSuccess('Recurrence settings saved successfully!');
+      
+      // Hide the success message after a delay
+      setTimeout(() => {
+        setSaveSuccess(null);
+      }, 3000);
 
       // Reset modal state
       closeRecurrenceModal();
       
-      // Refresh activities
+      // Refresh activities to show the changes
       await fetchActivities();
     } catch (error) {
       console.error('Error updating activity recurrence:', error);
+    } finally {
+      setSavingRecurrence(false);
     }
   };
 
@@ -533,7 +639,8 @@ const ActivitiesList: React.FC<ActivitiesListProps> = ({ employeeId }) => {
         // Escape quotes in description to avoid breaking CSV format
         `"${activity.description.replace(/"/g, '""')}"`,
         activity.status,
-        activity.due_date ? new Date(activity.due_date).toLocaleDateString() : '',
+        activity.due_date ? new Date(activity.due_date).toLocaleDateString() : 
+        (activity.recurrence_pattern?.nextDueDate ? new Date(activity.recurrence_pattern.nextDueDate).toLocaleDateString() : ''),
         activity.is_recurring ? 'Yes' : 'No',
         `"${recurrenceDescription.replace(/"/g, '""')}"`,
         new Date(activity.created_at).toLocaleDateString(),
@@ -565,8 +672,41 @@ const ActivitiesList: React.FC<ActivitiesListProps> = ({ employeeId }) => {
     document.body.removeChild(link);
   };
 
+  // Helper to check if a task is due today
+  const isDueToday = (activity: Activity): boolean => {
+    const dueDate = getActivityDueDate(activity);
+    if (!dueDate) return false;
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const taskDate = new Date(dueDate);
+    taskDate.setHours(0, 0, 0, 0);
+    
+    return taskDate.getTime() === today.getTime();
+  };
+
+  // Helper to check if a task is overdue
+  const isOverdue = (activity: Activity): boolean => {
+    const dueDate = getActivityDueDate(activity);
+    if (!dueDate) return false;
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const taskDate = new Date(dueDate);
+    taskDate.setHours(0, 0, 0, 0);
+    
+    return taskDate < today;
+  };
+
   return (
     <div className="activities-list glass-effect">
+      {saveSuccess && (
+        <div className="success-notification">
+          {saveSuccess}
+        </div>
+      )}
       <div className="activities-header">
         <h2>Activities & Tasks</h2>
         <div className="activities-header-buttons">
@@ -780,9 +920,12 @@ const ActivitiesList: React.FC<ActivitiesListProps> = ({ employeeId }) => {
                         <span className="recurrence-icon">🔁</span> {getRecurrenceDescription(activity)}
                       </span>
                     )}
-                    {activity.due_date && (
-                      <span className="activity-due-date">
-                        <span className="due-date-icon">📅</span> Due: {formatDueDate(activity.due_date)}
+                    {getActivityDueDate(activity) && (
+                      <span className={`activity-due-date ${
+                        isDueToday(activity) ? 'due-today' : 
+                        isOverdue(activity) ? 'overdue' : ''
+                      }`}>
+                        <span className="due-date-icon">📅</span> Due: {formatDueDate(activity)}
                       </span>
                     )}
                     <span className="activity-date">
@@ -862,7 +1005,7 @@ const ActivitiesList: React.FC<ActivitiesListProps> = ({ employeeId }) => {
                   </td>
                   <td className="description-cell">{activity.description}</td>
                   <td className="date-cell">
-                    {activity.due_date && formatDueDate(activity.due_date)}
+                    {getActivityDueDate(activity) && formatDueDate(activity)}
                   </td>
                   <td className="date-cell">
                     {activity.is_recurring && (
@@ -1025,10 +1168,18 @@ const ActivitiesList: React.FC<ActivitiesListProps> = ({ employeeId }) => {
               </div>
             </div>
             <div className="modal-footer">
-              <button className="save-button" onClick={saveRecurrenceSettings}>
-                Save Recurrence
+              <button 
+                className="save-button" 
+                onClick={saveRecurrenceSettings}
+                disabled={savingRecurrence}
+              >
+                {savingRecurrence ? 'Saving...' : 'Save Recurrence'}
               </button>
-              <button className="cancel-button" onClick={closeRecurrenceModal}>
+              <button 
+                className="cancel-button" 
+                onClick={closeRecurrenceModal}
+                disabled={savingRecurrence}
+              >
                 Cancel
               </button>
             </div>

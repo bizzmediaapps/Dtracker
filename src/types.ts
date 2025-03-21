@@ -34,6 +34,7 @@ export interface RecurrencePattern {
   daysOfWeek?: number[]; // 0-6 for Sunday-Saturday
   dayOfMonth?: number; // 1-31
   nextDueDate?: Date; // Next date when the task is due
+  isRecurring?: boolean; // Flag to indicate if the task is recurring (for schema compatibility)
 }
 
 export interface Activity {

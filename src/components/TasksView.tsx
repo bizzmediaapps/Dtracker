@@ -461,7 +461,7 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
 
   // Get a formatted string description of the recurrence pattern
   const getRecurrenceDescription = (activity: Activity): string => {
-    if (!activity.is_recurring || !activity.recurrence_pattern) return '';
+    if (!isActivityRecurring(activity) || !activity.recurrence_pattern) return '';
     
     const pattern = activity.recurrence_pattern;
     
@@ -493,6 +493,25 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
       default:
         return 'Recurring';
     }
+  };
+
+  // Helper function to check if activity is recurring by checking localStorage
+  const isActivityRecurring = (activity: Activity): boolean => {
+    // Check localStorage first
+    const localStorageKey = `recurrence_pattern_${activity.id}`;
+    const storedPattern = localStorage.getItem(localStorageKey);
+    
+    if (storedPattern) {
+      try {
+        const pattern = JSON.parse(storedPattern);
+        return !!pattern.isRecurring;
+      } catch (e) {
+        console.error('Error parsing stored recurrence pattern:', e);
+      }
+    }
+    
+    // If no localStorage data, check properties if they exist
+    return activity.is_recurring || !!activity.recurrence_pattern?.isRecurring;
   };
 
   // Function to open the employee details modal
@@ -586,7 +605,7 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
                       {displayTasks.map(activity => (
                         <li 
                           key={activity.id} 
-                          className={`task-item ${activity.is_task_of_day ? 'task-of-day' : ''} ${activity.is_recurring ? 'recurring-task' : ''}`}
+                          className={`task-item ${activity.is_task_of_day ? 'task-of-day' : ''} ${isActivityRecurring(activity) ? 'recurring-task' : ''}`}
                         >
                           <div className="task-content">
                             <span className="task-icon">
@@ -596,7 +615,7 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
                             {activity.is_task_of_day && (
                               <span className="task-day-badge">TODAY</span>
                             )}
-                            {activity.is_recurring && (
+                            {isActivityRecurring(activity) && (
                               <span className="task-recurring-badge">RECURRING</span>
                             )}
                           </div>
@@ -678,11 +697,11 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
                       {selectedEmployee.activities
                         .filter(a => a.is_task_of_day)
                         .map(activity => (
-                          <li key={activity.id} className={`modal-task-item task-of-day ${activity.is_recurring ? 'recurring-task' : ''}`}>
+                          <li key={activity.id} className={`modal-task-item task-of-day ${isActivityRecurring(activity) ? 'recurring-task' : ''}`}>
                             <div className="modal-task-content">
                               <span className="task-icon">🔥</span>
                               <span className="task-description">{activity.description}</span>
-                              {activity.is_recurring && (
+                              {isActivityRecurring(activity) && (
                                 <span className="task-recurring-badge">RECURRING</span>
                               )}
                             </div>
@@ -732,10 +751,10 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
                   <span className="category-icon">🔁</span> Recurring Tasks
                 </h4>
                 <div className="category-tasks">
-                  {selectedEmployee.activities.some(a => a.is_recurring && !a.is_task_of_day) ? (
+                  {selectedEmployee.activities.some(a => isActivityRecurring(a) && !a.is_task_of_day) ? (
                     <ul className="modal-tasks-list">
                       {selectedEmployee.activities
-                        .filter(a => a.is_recurring && !a.is_task_of_day)
+                        .filter(a => isActivityRecurring(a) && !a.is_task_of_day)
                         .map(activity => (
                           <li key={activity.id} className="modal-task-item recurring-task">
                             <div className="modal-task-content">
@@ -794,10 +813,10 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
                   <span className="category-icon">🔄</span> Active Tasks
                 </h4>
                 <div className="category-tasks">
-                  {selectedEmployee.activities.some(a => a.status === 'active' && !a.is_task_of_day && !a.is_recurring) ? (
+                  {selectedEmployee.activities.some(a => a.status === 'active' && !a.is_task_of_day && !isActivityRecurring(a)) ? (
                     <ul className="modal-tasks-list">
                       {selectedEmployee.activities
-                        .filter(a => a.status === 'active' && !a.is_task_of_day && !a.is_recurring)
+                        .filter(a => a.status === 'active' && !a.is_task_of_day && !isActivityRecurring(a))
                         .map(activity => (
                           <li key={activity.id} className="modal-task-item">
                             <div className="modal-task-content">
@@ -855,16 +874,16 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
                       {selectedEmployee.activities
                         .filter(a => a.status === 'deferred')
                         .map(activity => (
-                          <li key={activity.id} className={`modal-task-item ${activity.is_recurring ? 'recurring-task' : ''}`}>
+                          <li key={activity.id} className={`modal-task-item ${isActivityRecurring(activity) ? 'recurring-task' : ''}`}>
                             <div className="modal-task-content">
                               <span className="task-icon">⏳</span>
                               <span className="task-description">{activity.description}</span>
-                              {activity.is_recurring && (
+                              {isActivityRecurring(activity) && (
                                 <span className="task-recurring-badge">RECURRING</span>
                               )}
                             </div>
                             <div className="task-meta">
-                              {activity.is_recurring && (
+                              {isActivityRecurring(activity) && (
                                 <span className="task-recurrence">
                                   {getRecurrenceDescription(activity)}
                                 </span>
@@ -899,16 +918,16 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
                       {selectedEmployee.activities
                         .filter(a => a.status === 'completed')
                         .map(activity => (
-                          <li key={activity.id} className={`modal-task-item ${activity.is_recurring ? 'recurring-task' : ''}`}>
+                          <li key={activity.id} className={`modal-task-item ${isActivityRecurring(activity) ? 'recurring-task' : ''}`}>
                             <div className="modal-task-content">
                               <span className="task-icon">✅</span>
                               <span className="task-description">{activity.description}</span>
-                              {activity.is_recurring && (
+                              {isActivityRecurring(activity) && (
                                 <span className="task-recurring-badge">RECURRING</span>
                               )}
                             </div>
                             <div className="task-meta">
-                              {activity.is_recurring && (
+                              {isActivityRecurring(activity) && (
                                 <span className="task-recurrence">
                                   {getRecurrenceDescription(activity)}
                                 </span>
