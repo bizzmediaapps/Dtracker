@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
-import { Employee, Activity, ActivityStatus, RecurrencePattern } from '../types';
+import { Employee, Activity } from '../types';
 
 interface TasksViewProps {
   employees: Employee[];
@@ -426,9 +426,9 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
   // Get icon based on task status
   const getTaskIcon = (activity: Activity): string => {
     if (activity.is_task_of_day) return '🔥';
+    if (activity.is_recurring) return '🔁';
     if (activity.status === 'completed') return '✅';
     if (activity.status === 'deferred') return '⏳';
-    if (activity.is_recurring) return '🔁';
     return '🔄';
   };
 
@@ -502,21 +502,6 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
       employee,
       activities
     });
-  };
-
-  // Function to group activities by their status
-  const groupActivitiesByStatus = (activities: Activity[]) => {
-    const result: Record<ActivityStatus, Activity[]> = {
-      'active': [],
-      'completed': [],
-      'deferred': []
-    };
-    
-    activities.forEach(activity => {
-      result[activity.status].push(activity);
-    });
-    
-    return result;
   };
 
   // Update the button text based on whether this is already a task of day
