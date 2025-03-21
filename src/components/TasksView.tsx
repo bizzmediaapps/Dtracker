@@ -259,9 +259,14 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
         return newTabs;
       });
       
-      // Update local state for tasks of day
-      setTasksOfDay(prev => {
-        const employeeTasks = prev[employeeId] || [];
+      // CRITICAL: Force proper type checking in production
+      const safeUpdateTasksOfDay = (prevTasksOfDay: TasksOfDayState) => {
+        // Make defensive copies of everything
+        const prevState = { ...prevTasksOfDay };
+        const employeeTasks = Array.isArray(prevState[employeeId]) 
+          ? [...prevState[employeeId]] 
+          : [];
+        
         // Check if this task is already a task of day
         const isAlreadyTaskOfDay = employeeTasks.includes(activityId);
         
@@ -270,7 +275,13 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
           ? employeeTasks.filter(id => id !== activityId)
           : [...employeeTasks, activityId];
         
-        const newTasksOfDay = { ...prev, [employeeId]: newEmployeeTasks };
+        // Create a new state object to ensure React detects the change
+        return { ...prevState, [employeeId]: newEmployeeTasks };
+      };
+      
+      // Update local state for tasks of day with our safe function
+      setTasksOfDay(prev => {
+        const newTasksOfDay = safeUpdateTasksOfDay(prev);
         
         // Save to localStorage immediately
         try {
@@ -282,15 +293,23 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
         return newTasksOfDay;
       });
       
-      // Update our local state for immediate UI feedback
+      // Update our local state for immediate UI feedback - use defensive copying
       setEmployeeActivities(prevActivities => {
+        // Make a fresh copy of the entire state
         const updatedActivities = { ...prevActivities };
         
-        // Update the is_task_of_day flag for this specific activity
+        // Defensively update the activities for this employee
         if (updatedActivities[employeeId]) {
-          updatedActivities[employeeId] = updatedActivities[employeeId].map(activity => {
+          // Ensure we have an array before operating on it
+          if (!Array.isArray(updatedActivities[employeeId])) {
+            console.warn('Employee activities not an array:', updatedActivities[employeeId]);
+            return prevActivities; // Return unchanged if not an array
+          }
+          
+          // Create a fresh copy of the employee's activities array
+          updatedActivities[employeeId] = [...updatedActivities[employeeId]].map(activity => {
             if (activity.id === activityId) {
-              // Toggle the is_task_of_day flag
+              // Toggle the is_task_of_day flag with a fresh activity object
               return {
                 ...activity,
                 is_task_of_day: !activity.is_task_of_day
@@ -303,33 +322,7 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
         return updatedActivities;
       });
 
-      // For now, skip the database operations since the column doesn't exist
-      // This will use our local state instead
       console.log(`Successfully updated task of day status for activity ${activityId} (using local storage)`);
-      
-      // Optional: Add a database operation attempt for when the column is added
-      try {
-        // Update the task of day status in the database
-        // For now this is commented out, but when the database schema is updated,
-        // we'll just directly toggle the is_task_of_day flag for this specific activity
-        /*
-        const activity = employeeActivities[employeeId]?.find(a => a.id === activityId);
-        if (activity) {
-          const { error: updateError } = await supabase
-            .from('activities')
-            .update({ is_task_of_day: !activity.is_task_of_day })
-            .match({ id: activityId });
-          
-          if (updateError) {
-            console.error('Error updating task of day:', updateError);
-            throw updateError;
-          }
-        }
-        */
-      } catch (dbError) {
-        console.error('Database operation failed (expected until schema is updated):', dbError);
-        // Continue using local storage approach
-      }
       
     } catch (error) {
       console.error('Error setting task of day:', error);
@@ -743,38 +736,52 @@ const TasksView: React.FC<TasksViewProps> = ({ employees }) => {
                                   // Prevent event propagation to avoid bubbling
                                   e.stopPropagation();
                                   
-                                  // First, capture necessary IDs before any state updates
+                                  // CRITICAL: First, capture all necessary IDs before any state changes
                                   const activityId = activity.id;
                                   const employeeId = selectedEmployee.employee.id;
+                                  const activityDescription = activity.description;
                                   
-                                  // First update the UI to show changes immediately
-                                  if (selectedEmployee && selectedEmployee.activities) {
-                                    setSelectedEmployee(prev => {
-                                      // Safety check - if prev is null, don't update
-                                      if (!prev) return null;
-                                      
-                                      // IMPORTANT: Make sure we have a valid activities array before mapping
-                                      if (!Array.isArray(prev.activities)) {
-                                        return prev; // Return unchanged if not an array
-                                      }
-                                      
-                                      // Create a defensive copy of the activities array with proper type checking
-                                      const updatedActivities = prev.activities.map(a => 
-                                        a.id === activityId ? { ...a, is_task_of_day: false } : a
-                                      );
-                                      
-                                      return {
-                                        ...prev,
-                                        activities: updatedActivities
-                                      };
-                                    });
+                                  // IMPORTANT: Use a local variable to track if we need to update the database
+                                  // This prevents race conditions during state updates
+                                  const needsDatabaseUpdate = true;
+                                  
+                                  // Update the UI optimistically and very defensively
+                                  try {
+                                    if (selectedEmployee && selectedEmployee.activities) {
+                                      setSelectedEmployee(prev => {
+                                        // Safety check - if prev is null, don't update
+                                        if (!prev) return null;
+                                        
+                                        // Explicit array check before any operation
+                                        if (!Array.isArray(prev.activities)) {
+                                          console.warn('Activities is not an array:', prev.activities);
+                                          return prev; // Return unchanged state
+                                        }
+                                        
+                                        // Create a defensive copy with explicit array creation
+                                        const updatedActivities = [...prev.activities].map(a => 
+                                          a.id === activityId ? { ...a, is_task_of_day: false } : a
+                                        );
+                                        
+                                        return {
+                                          ...prev,
+                                          activities: updatedActivities
+                                        };
+                                      });
+                                    }
+                                  } catch (error) {
+                                    console.error('Error updating UI state:', error);
+                                    // Continue with database update even if UI update fails
                                   }
                                   
-                                  // Add a small delay to ensure state updates complete first
+                                  // Add a safety delay to ensure React has processed state changes
                                   setTimeout(() => {
                                     // Now update the underlying data by calling setTaskOfDay
-                                    setTaskOfDay(activityId, employeeId);
-                                  }, 10);
+                                    if (needsDatabaseUpdate) {
+                                      console.log(`Updating task of day status for: ${activityDescription}`);
+                                      setTaskOfDay(activityId, employeeId);
+                                    }
+                                  }, 50); // Longer timeout for production
                                 }}
                               >
                                 Remove from Today's Tasks
