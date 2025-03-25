@@ -46,4 +46,27 @@
 [data-theme='dark'] .status-button:not(.active) {
     color: var(--text-primary);
     border-color: var(--border-color);
+}
+
+/* Update for Today button styles */
+.update-today-button {
+    background-color: #FFC107;
+    color: rgba(0, 0, 0, 0.8);
+    border: 2px solid #FFC107;
+}
+
+.update-today-button:hover {
+    background-color: #FFB300;
+    border-color: #FFB300;
+}
+
+[data-theme='dark'] .update-today-button {
+    background-color: #FFC107;
+    color: rgba(0, 0, 0, 0.8);
+    border-color: #FFC107;
+}
+
+[data-theme='dark'] .update-today-button:hover {
+    background-color: #FFB300;
+    border-color: #FFB300;
 } 

@@ -20,6 +20,13 @@ const StatusUpdater: React.FC<StatusUpdaterProps> = ({ currentStatus, onStatusUp
         }
     };
 
+    // Handler for the Update for Today button
+    const handleUpdateForToday = () => {
+        // This simply calls the onStatusUpdate with the current status
+        // to update the timestamp for today
+        onStatusUpdate(currentStatus);
+    };
+
     return (
         <div className="status-updater glass-effect">
             <h2>Update Status</h2>
@@ -38,6 +45,13 @@ const StatusUpdater: React.FC<StatusUpdaterProps> = ({ currentStatus, onStatusUp
                         {option.label}
                     </button>
                 ))}
+                <button 
+                    className="status-button update-today-button"
+                    onClick={handleUpdateForToday}
+                    title="Updates the current status timestamp for today without changing the selected status"
+                >
+                    Update for Today
+                </button>
             </div>
         </div>
     );
