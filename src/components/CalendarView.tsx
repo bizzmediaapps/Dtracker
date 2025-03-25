@@ -1611,6 +1611,11 @@ ${event.event_type !== 'holiday' ? formatEventTime(event.date) : ''}`}
             </div>
           </div>
 
+          {/* Collapsible Upcoming Events Table */}
+          <div className="upcoming-events-container glass-effect">
+            <UpcomingEventsTable events={events} selectedEmployeeFilter={selectedEmployeeFilter} />
+          </div>
+
           {/* Day Events Modal */}
           {selectedDateEvents && (
             <div className="modal-overlay">
@@ -1651,9 +1656,11 @@ ${event.event_type !== 'holiday' ? formatEventTime(event.date) : ''}`}
                         </div>
                         <div className="event-list-content">
                           <div className="event-list-title">{event.title}</div>
+                          
                           {event.employeeName && (
                             <div className="event-list-employee">Assigned to: {event.employeeName}</div>
                           )}
+                          
                           {event.event_type !== 'holiday' && (
                             <div className="event-list-time">{formatEventTime(event.date)}</div>
                           )}
@@ -1893,6 +1900,150 @@ ${event.event_type !== 'holiday' ? formatEventTime(event.date) : ''}`}
             </div>
           )}
         </>
+      )}
+    </div>
+  );
+};
+
+// Add this function before the export default statement at the end of the file
+const UpcomingEventsTable: React.FC<{
+  events: CalendarEvent[];
+  selectedEmployeeFilter: string;
+}> = ({ events, selectedEmployeeFilter }) => {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  
+  // Get upcoming events (events that are today or in the future)
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  // Filter events to show only upcoming ones and apply employee filter
+  const upcomingEvents = events
+    .filter(event => {
+      const eventDate = new Date(event.date);
+      eventDate.setHours(0, 0, 0, 0);
+      
+      // Filter by date (today or future)
+      const isUpcoming = eventDate >= today;
+      
+      // Filter by employee if a specific one is selected
+      const matchesEmployeeFilter = 
+        selectedEmployeeFilter === 'all' || 
+        event.employee_id === selectedEmployeeFilter || 
+        event.event_type === 'holiday';
+      
+      return isUpcoming && matchesEmployeeFilter;
+    })
+    .sort((a, b) => a.date.getTime() - b.date.getTime())
+    .slice(0, 10); // Limit to 10 events for better performance
+  
+  // Group events by date
+  const eventsByDate: Record<string, CalendarEvent[]> = {};
+  
+  upcomingEvents.forEach(event => {
+    const dateStr = event.date.toDateString();
+    if (!eventsByDate[dateStr]) {
+      eventsByDate[dateStr] = [];
+    }
+    eventsByDate[dateStr].push(event);
+  });
+  
+  // Format event date for display
+  const formatEventDate = (date: Date): string => {
+    return date.toLocaleDateString(undefined, {
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+  
+  // Format event time for display
+  const formatEventTime = (date: Date): string => {
+    return date.toLocaleTimeString(undefined, {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+  
+  // Check if a date is today
+  const isToday = (date: Date): boolean => {
+    const today = new Date();
+    return (
+      date.getDate() === today.getDate() &&
+      date.getMonth() === today.getMonth() &&
+      date.getFullYear() === today.getFullYear()
+    );
+  };
+  
+  return (
+    <div className="upcoming-events-section">
+      <div 
+        className="upcoming-events-header"
+        onClick={() => setIsCollapsed(!isCollapsed)}
+      >
+        <h3>
+          <span className="upcoming-icon">📆</span> 
+          Upcoming Events 
+          <span className="event-count-badge">{upcomingEvents.length}</span>
+        </h3>
+        <button className="collapse-button">
+          {isCollapsed ? '▼' : '▲'}
+        </button>
+      </div>
+      
+      {!isCollapsed && (
+        <div className="upcoming-events-content">
+          {Object.keys(eventsByDate).length === 0 ? (
+            <div className="no-upcoming-events">No upcoming events</div>
+          ) : (
+            <div className="date-groups">
+              {Object.entries(eventsByDate).map(([dateStr, dateEvents]) => (
+                <div key={dateStr} className="date-group">
+                  <div className="date-header">
+                    <span className={`date-label ${isToday(new Date(dateStr)) ? 'today' : ''}`}>
+                      {isToday(new Date(dateStr)) ? 'Today' : formatEventDate(new Date(dateStr))}
+                    </span>
+                  </div>
+                  
+                  <div className="date-events">
+                    {dateEvents.map(event => (
+                      <div 
+                        key={event.id}
+                        className={`event-card ${event.event_type}`}
+                      >
+                        <div 
+                          className="event-color-indicator" 
+                          style={{ backgroundColor: event.color }}
+                        ></div>
+                        
+                        <div className="event-icon">
+                          {event.event_type === 'holiday' ? '🎉' : 
+                           event.event_type === 'event' ? '📅' : '⏰'}
+                        </div>
+                        
+                        <div className="event-details">
+                          <div className="event-title">{event.title}</div>
+                          
+                          {event.employeeName && (
+                            <div className="event-employee">
+                              {event.employeeName}
+                            </div>
+                          )}
+                          
+                          {event.event_type !== 'holiday' && (
+                            <div className="event-time">
+                              {formatEventTime(event.date)}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
